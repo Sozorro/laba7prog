@@ -1,0 +1,8 @@
+name; id; date; name; coordinatesX; coordinatesY; minimalPoint; personalQualitiesMinimum; description; difficulty;name; height; weight; passportID; hairColor;intparam;stringparam
+add;1;12.03.2000;first;3.0;3.0;7;9;[p;VERY_HARD;fgvhbj;10.0;3;5;WHITE;;
+add;2;12.03.2000;second;4.0;7.0;5;7;qwertyui;INSANE;[p;100.0;697;6;YELLOW;;
+add;3;12.03.2000;thirt;6.0;8.0;2;8;qwervbnm;HARD;fgvhbj;5.6;6;4;WHITE;;
+add;4;12.03.2000;fourth;8.0;3.0;5;5;[p;INSANE;vigcycygc;7.3;8;34;ORANGE;;
+add;5;12.03.2000;fifth;1.0;0.0;7;3;fhcghgf;VERY_HARD;poiuyt;5.0;1;1;ORANGE;;
+add;6;12.03.2000;sixth;0.0;1.0;8;1;[p;INSANE;fgvhbj;6.0;3;5;YELLOW;;
+add;7;12.03.2000;seventh;9.0;3.0;3;6;[p;VERY_HARD;[p;7.0;654;2;WHITE;;
