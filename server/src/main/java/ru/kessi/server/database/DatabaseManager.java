@@ -189,9 +189,101 @@ public class DatabaseManager {
 
     }
 
-    public static void delLabworkToDB() {}
+    public static boolean delLabworkForDB(long id) {
+        String delSql = "DELETE FROM lab_works WHERE id = ?";
+        
+        try (Connection conn = getConnectionDB();
+            PreparedStatement stmt = conn.prepareStatement(delSql)) {
+            
+            stmt.setLong(1, id);
+            
+            long updateStr = stmt.executeUpdate();
+            
+            if (updateStr > 0) {
+                Logger.info("Объект с id={} успешно удален из БД", id);
+                return true;
+            } else {
+                Logger.warn("Объект с id={} не найден в БД", id);
+                return false;
+            }
+            
+        } catch (SQLException e) {
+            Logger.error(e, "Ошибка при удалении объекта из БД");
+            return false;
+        }
+    }
 
-    public static void updateLabworkToDB() {}
+    public static boolean updateLabworkToDB(LabWork labWork) {
+        String updateSql = """
+            UPDATE lab_works SET
+                creation_date = ?,
+                name = ?,
+                coordinates_x = ?,
+                coordinates_y = ?,
+                minimal_point = ?,
+                personal_qualities_minimum = ?,
+                description = ?,
+                difficulty = ?,
+                author_name = ?,
+                author_height = ?,
+                author_weight = ?,
+                author_passport_id = ?,
+                author_hair_color = ?
+            WHERE id = ?
+            """;
+        
+        try (Connection conn = getConnectionDB();
+            PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+
+            stmt.setLong(14, labWork.getId());
+            
+            stmt.setTimestamp(1, new Timestamp(labWork.getCreationDate().getTime()));
+            stmt.setString(2, labWork.getName());
+            stmt.setFloat(3, labWork.getCoordinates().getX());
+            stmt.setFloat(4, labWork.getCoordinates().getY());
+            stmt.setInt(5, labWork.getMinimalPoint());
+            stmt.setInt(6, labWork.getPersonalQualitiesMinimum());
+            stmt.setString(7, labWork.getDescription());
+            stmt.setString(8, labWork.getDifficulty().name());
+            
+            // Person (author):
+            stmt.setString(9, labWork.getAuthor().getName());
+            stmt.setDouble(10, labWork.getAuthor().getHeight());
+            stmt.setLong(11, labWork.getAuthor().getWeight());
+            stmt.setString(12, labWork.getAuthor().getPassportID());
+            stmt.setString(13, labWork.getAuthor().getHairColor().name());
+            
+            long updateStr = stmt.executeUpdate();
+            
+            if (updateStr > 0) {
+                Logger.info("Объект с id={} успешно обновлен в БД", labWork.getId());
+                return true;
+            } else {
+                Logger.warn("Объект с id={} не найден в БД", labWork.getId());
+                return false;
+            }
+            
+        } catch (SQLException e) {
+            Logger.error(e, "Ошибка при обновлении объекта в БД");
+            return false;
+        }
+    }
+
+    public static long clearDatabase() {
+        String clearSql = "DELETE FROM lab_works";
+        
+        try (Connection conn = getConnectionDB();
+            Statement stmt = conn.createStatement()) {
+            
+            long updateStr = stmt.executeUpdate(clearSql);
+            Logger.info("Из БД удалено {} объектов", updateStr);
+            return updateStr;
+            
+        } catch (SQLException e) {
+            Logger.error(e, "Ошибка при очистке БД");
+            return -1;
+        }
+    }
 
     /* 
 
