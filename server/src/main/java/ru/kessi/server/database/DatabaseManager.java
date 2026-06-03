@@ -2,11 +2,22 @@ package ru.kessi.server.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.TreeSet;
 
 import org.tinylog.Logger;
+
+import ru.kessi.common.entites.Coordinates;
+import ru.kessi.common.entites.LabWork;
+import ru.kessi.common.entites.Person;
+import ru.kessi.common.entites.enums.Color;
+import ru.kessi.common.entites.enums.Difficulty;
 
 public class DatabaseManager {
     private static final String URL = "jdbc:postgresql://localhost:5432/collection";
@@ -17,41 +28,31 @@ public class DatabaseManager {
         try {
             return DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
-            Logger.error("Ошибка при попытке подключения к БД", e);
+            Logger.error(e, "Ошибка при попытке подключения к БД");
             throw e;
         }
     }
 
-    /*public static void closeConnection() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                Logger.info("Подключение к базе данных закрыто");
-            }
-        } catch (SQLException e) {
-            Logger.error("Ошибка при закрытии подключения к БД", e);
-        }
-    }*/
-
     public static void initDatabase() {
-        String textForUsersTableSQL = """
+        /* String textForUsersTableSQL = """
             CREATE TABLE IF NOT EXISTS users (
                 login VARCHAR(25) PRIMARY KEY,
                 password VARCHAR(255) NOT NULL
             );
-            """;
+            """; 
+            */
+            //login_author VARCHAR(50) NOT NULL REFERENCES users(login),
         String textForLabWorksTableSQL = """
             CREATE TABLE IF NOT EXISTS lab_works (
                 id BIGSERIAL PRIMARY KEY,
+                creation_date TIMESTAMP NOT NULL,
                 name VARCHAR(255) NOT NULL,
                 coordinates_x DOUBLE PRECISION NOT NULL,
                 coordinates_y DOUBLE PRECISION NOT NULL,
-                creation_date TIMESTAMP NOT NULL,
                 minimal_point INTEGER NOT NULL CHECK (minimal_point > 0),
                 personal_qualities_minimum INTEGER NOT NULL CHECK (personal_qualities_minimum > 0),
                 description VARCHAR(3271) NOT NULL,
                 difficulty VARCHAR(50),
-                login_author VARCHAR(50) NOT NULL REFERENCES users(login),
                 
                 -- Person (author):
                 author_name VARCHAR(255) NOT NULL,
@@ -69,9 +70,9 @@ public class DatabaseManager {
             Logger.info("Подключение к базе данных прошло успешно");
             Logger.info("Начинаем инициализацию данных...");
 
-            stmt.executeUpdate(textForUsersTableSQL);
-            Logger.info("Таблица 'users' успешно создана или уже существует.");
-
+            //stmt.executeUpdate(textForUsersTableSQL);
+            //Logger.info("Таблица 'users' успешно создана или уже существует.");
+           
             stmt.executeUpdate(textForLabWorksTableSQL);
             Logger.info("Таблица 'lab_works' успешно создана или уже существует.");
 
@@ -87,9 +88,159 @@ public class DatabaseManager {
             Logger.info("-----------------------------------");
 
         } catch (SQLException e) {
-            Logger.error("ошибка при подключении к таблице или при инициализации данных", e);
+            Logger.error(e, "ошибка при подключении к таблице или при инициализации данных");
         }
+
     }
+
+
+    
+    public static TreeSet<LabWork> loadCollectionToDB() {
+
+        class idComparator implements Comparator<LabWork> {
+            @Override
+            public int compare(LabWork a, LabWork b) {
+                return (int) (Long.valueOf(a.getId()) - Long.valueOf(b.getId()));
+            }
+        }
+        TreeSet<LabWork> collection = new TreeSet<>(new idComparator());
+
+        String loadLabs = """
+            SELECT * FROM lab_works
+        """;
+
+        try (Connection conn = getConnectionDB();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(loadLabs);) {
+
+            while (rs.next()) {
+                long id = rs.getLong("id");
+                java.util.Date creationDate = new java.util.Date(rs.getTimestamp("creation_date").getTime());
+                String name = rs.getString("name");
+                float x = rs.getFloat("coordinates_x");
+                float y = rs.getFloat("coordinates_y");
+
+                int minimalPoint = rs.getInt("minimal_point");
+                int personalQualitiesMinimum = rs.getInt("personal_qualities_minimum");
+                String description = rs.getString("description");
+                Difficulty difficulty = Difficulty.valueOf(rs.getString("difficulty"));
+                
+                //Person (author):
+                String authorName = rs.getString("author_name");
+                double authorHeight = rs.getDouble("author_height");
+                long authorWeight = rs.getLong("author_weight");
+                String passportID = rs.getString("author_passport_id");
+                Color hairColor = Color.valueOf(rs.getString("author_hair_color"));
+
+                LabWork laba = new LabWork(id, creationDate, name, new Coordinates(x, y), minimalPoint, personalQualitiesMinimum, description, difficulty, new Person(authorName, authorHeight, authorWeight, passportID, hairColor));
+                
+                collection.add(laba);
+            }
+            Logger.info("Из базы данных успешно загружено {} объектов", collection.size());
+            
+        } catch (SQLException e) {
+            Logger.error(e, "ошибка при извлечении данных из БД");
+        }
+        return collection;
+    }
+
+    public static long addLabworkToDB(LabWork labWork) {
+        String addLab = """
+            INSERT INTO lab_works (
+                creation_date, name, coordinates_x, coordinates_y, minimal_point, 
+                personal_qualities_minimum, description, difficulty, 
+                author_name, author_height, author_weight, author_passport_id, author_hair_color
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
+
+        try (Connection conn = getConnectionDB();
+                PreparedStatement stmt = conn.prepareStatement(addLab, Statement.RETURN_GENERATED_KEYS)) {
+            
+            stmt.setTimestamp(1, new Timestamp(labWork.getCreationDate().getTime()));
+            stmt.setString(2, labWork.getName());
+            stmt.setFloat(3, labWork.getCoordinates().getX());
+            stmt.setFloat(4, labWork.getCoordinates().getY());
+            
+            stmt.setInt(5, labWork.getMinimalPoint());
+            stmt.setInt(6, labWork.getPersonalQualitiesMinimum());
+            stmt.setString(7, labWork.getDescription());
+            stmt.setString(8, labWork.getDifficulty().name());
+            
+            // Person (author):
+            stmt.setString(9, labWork.getAuthor().getName());
+            stmt.setDouble(10, labWork.getAuthor().getHeight());
+            stmt.setLong(11, labWork.getAuthor().getWeight());
+            stmt.setString(12, labWork.getAuthor().getPassportID());
+            stmt.setString(13, labWork.getAuthor().getHairColor().name());
+           
+            stmt.executeUpdate();
+            
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    long newId = generatedKeys.getLong(1);
+                    Logger.info("Объект '{}' успешно сохранен в БД. Его id={}", labWork.getName(), newId);
+                    return newId;
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error(e, "ошибка при попытке добавить объект в базу данных");
+        }
+        return -1;
+
+    }
+
+    public static void delLabworkToDB() {}
+
+    public static void updateLabworkToDB() {}
+
+    /* 
+
+    public String execute(CollectionManager collectionManager, Object args){
+        try {
+            String str = "dop_doc/collection.csv";
+            
+            try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(str), "UTF-8")) {
+                TreeSet<LabWork> collection = collectionManager.getElems();
+                //CsvSaver.saveCollection(collection, writer);
+                String head = "name; id; date; name; coordinatesX; coordinatesY; minimalPoint; personalQualitiesMinimum; description; difficulty;name; height; weight; passportID; hairColor;intparam;stringparam";
+                writer.write(head + "\n");
+                SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy");
+                for (LabWork laba : collection) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("add").append(";");
+                    sb.append(laba.getId()).append(";");
+                    sb.append(formatter.format(laba.getCreationDate())).append(";"); 
+                    sb.append(laba.getName()).append(";");
+                    sb.append(laba.getCoordinates().getX()).append(";");
+                    sb.append(laba.getCoordinates().getY()).append(";");
+                    sb.append(laba.getMinimalPoint()).append(";");
+                    sb.append(laba.getPersonalQualitiesMinimum()).append(";");
+                    sb.append(laba.getDescription()).append(";");
+                    sb.append(laba.getDifficulty().toString()).append(";");
+                    sb.append(laba.getAuthor().getName()).append(";"); 
+                    sb.append(laba.getAuthor().getHeight()).append(";");
+                    sb.append(laba.getAuthor().getWeight()).append(";");
+                    sb.append(laba.getAuthor().getPassportID()).append(";");
+                    sb.append(laba.getAuthor().getHairColor()).append(";");
+                    sb.append(";");
+                    sb.append("\n");
+                    writer.write(sb.toString());
+
+                }
+                writer.flush();
+            } catch (IOException e) {
+                throw new WrongParam("Ошибка ввода");
+            }
+            return ("Коллекция сохранена в файл");
+        } catch (Exception e) {
+            System.out.println("Произошла непредвиденная ошибка. Создание элемента было остановлено и он не был добавлен в коллекцию");
+            throw e;
+        }
+    
+    }
+     */
+
+
 }
 
 //

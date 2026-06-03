@@ -42,7 +42,7 @@ public class Client {
                 Logger.info("Клиент удалён");
             }
         } catch (Exception e) {
-            Logger.error("Ошибка при попытке удалить клиента", e);
+            Logger.error(e, "Ошибка при попытке удалить клиента");
         }
     }
 
@@ -60,9 +60,9 @@ public class Client {
                         request(scanner); // Один вызов — внутри цикл обработки команд
                         break; // Выход, если request() завершился нормально (например, exit)
                     } catch (IOException e) {
-                        Logger.warn("Соединение потеряно, переподключение...", e);
+                        Logger.warn(e, "Соединение потеряно, переподключение...");
                         if (!connectRetry()) {
-                            Logger.error("Не удалось переподключиться. Завершение работы.");
+                            Logger.error(e, "Не удалось переподключиться. Завершение работы.");
                             break;
                         }
                     }
@@ -108,7 +108,7 @@ public class Client {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                Logger.error("Поток прерван");
+                Logger.error(e, "Поток прерван");
                 break;
             }
         }
@@ -153,10 +153,10 @@ public class Client {
             }
 
         } catch (IOException e) {
-            Logger.error("Ошибка ввода-вывода при попытке передать запрос");
+            Logger.error(e, "Ошибка ввода-вывода при попытке передать запрос");
             throw e;
         } catch (Exception e) {
-            Logger.error("Ошибка при попытке передать запрос");
+            Logger.error(e, "Ошибка при попытке передать запрос");
         }
     }
     public void answerServer() {
@@ -195,7 +195,7 @@ public class Client {
             }
             Logger.info("Получен объект: {}", req);
         } catch (Exception e) {
-            Logger.error("Ошибка при чтении ответа сервера");
+            Logger.error(e, "Ошибка при чтении ответа сервера");
         }
         
 

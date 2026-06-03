@@ -64,7 +64,7 @@ public class Server {
         try {
             closeServer();
         } catch (Exception e) {
-            Logger.error("Ошибка при закрытии сервера", e);
+            Logger.error(e, "Ошибка при закрытии сервера");
         }
     }
     
@@ -79,8 +79,12 @@ public class Server {
             collectionManager = new CollectionManager();
             DatabaseManager.initDatabase();
 
-            ExecuteScriptCommand executeScriptCommand = new ExecuteScriptCommand();
-            executeScriptCommand.execute(collectionManager, null);
+            collectionManager.loadCollection(DatabaseManager.loadCollectionToDB());
+            
+            Logger.info("Коллекция успешно загружена из базы данных в память.");
+            
+            //ExecuteScriptCommand executeScriptCommand = new ExecuteScriptCommand();
+            //executeScriptCommand.execute(collectionManager, null);
 
             Logger.info("Сервер host={} port={} создн и ожидает подключения", host, port);
 
@@ -93,11 +97,11 @@ public class Server {
                     }
                 }
             } catch (SQLException e) {
-                Logger.error("КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных", e);
+                Logger.error(e, "КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных");
             }*/
 
         } catch (Exception e) {
-            Logger.error("Ошибка при попытке создать сервер", e);
+            Logger.error(e, "Ошибка при попытке создать сервер");
             stop();
         }
     }
@@ -108,7 +112,7 @@ public class Server {
             if (serverSocketChannel != null) serverSocketChannel.close();
             Logger.info("Сервер закрыт");
         } catch (Exception e) {
-            Logger.error("Ошибка при попытке закрыть сервер", e);
+            Logger.error(e, "Ошибка при попытке закрыть сервер");
         }
     }
 
@@ -153,7 +157,7 @@ public class Server {
                             arrByteMapForClients.put(clientChannel, new ByteArrayOutputStream());
                             Logger.info("Клиент подключён, адрес={}", clientChannel.getRemoteAddress());
                         } catch (Exception e) {
-                            Logger.error("Ошибка при подключении клиента", e);
+                            Logger.error(e, "Ошибка при подключении клиента");
                         }
                     } else if (key.isReadable()) {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
@@ -177,7 +181,7 @@ public class Server {
                 }
             }
         } catch (Exception e) {
-            Logger.error("Ошибка в главном цикле сервера", e);
+            Logger.error(e, "Ошибка в главном цикле сервера");
         } finally {
             if(!work) stop();
         }
@@ -265,7 +269,7 @@ public class Server {
         } catch (EOFException e) {
             throw e;
         } catch (Exception e) {
-            Logger.error("Ошибка при попытке получить или обработать запрос от клиента", e);
+            Logger.error(e, "Ошибка при попытке получить или обработать запрос от клиента");
         }
     }
     public void answerServer(SocketChannel clientChannel, String res) {
@@ -279,7 +283,7 @@ public class Server {
                 clientChannel.write(buffer);
             }
         } catch (Exception e) {
-            Logger.error("Ошибка при отправке ответа клиенту", e);
+            Logger.error(e, "Ошибка при отправке ответа клиенту");
         }
     }
 }
