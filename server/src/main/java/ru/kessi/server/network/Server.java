@@ -8,6 +8,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -18,8 +20,9 @@ import org.tinylog.Logger;
 import org.tinylog.ThreadContext;
 
 import ru.kessi.common.Request;
-import ru.kessi.server.commandServer.SaveCommand;
 import ru.kessi.server.commandServer.ExecuteScriptCommand;
+import ru.kessi.server.commandServer.SaveCommand;
+import ru.kessi.server.database.DatabaseManager;
 import ru.kessi.server.managers.CollectionManager;
 import ru.kessi.server.managers.ComParser;
 
@@ -72,11 +75,27 @@ public class Server {
             serverSocketChannel.configureBlocking(false);
             selector = Selector.open();
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+
             collectionManager = new CollectionManager();
+            DatabaseManager.initDatabase();
+
             ExecuteScriptCommand executeScriptCommand = new ExecuteScriptCommand();
             executeScriptCommand.execute(collectionManager, null);
 
             Logger.info("Сервер host={} port={} создн и ожидает подключения", host, port);
+
+            /*try {
+                Connection testConn = DatabaseManager.getConnectionDB();
+                try (var stmt = testConn.createStatement();
+                    var rs = stmt.executeQuery("SELECT version()")) {
+                    if (rs.next()) {
+                        Logger.info("Подключение к БД прошло успешно. Версия БД: {}", rs.getString("version"));
+                    }
+                }
+            } catch (SQLException e) {
+                Logger.error("КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных", e);
+            }*/
+
         } catch (Exception e) {
             Logger.error("Ошибка при попытке создать сервер", e);
             stop();
