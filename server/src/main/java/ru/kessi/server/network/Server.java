@@ -20,6 +20,7 @@ import org.tinylog.Logger;
 import org.tinylog.ThreadContext;
 
 import ru.kessi.common.Request;
+import ru.kessi.common.commandManager.RegNewUserCommand;
 import ru.kessi.server.commandServer.ExecuteScriptCommand;
 import ru.kessi.server.commandServer.SaveCommand;
 import ru.kessi.server.database.DatabaseManager;
@@ -109,7 +110,7 @@ public class Server {
                         Logger.info("Ожидаем подключения хотя бы одного клиента...");
                     }
                     try {
-                        Thread.sleep(5000);
+                        Thread.sleep(10000);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         break; 
@@ -118,7 +119,7 @@ public class Server {
             });
             dotsThread.setDaemon(true);
             dotsThread.start();
-            //System.out.println("Ожидаем подключения хотя бы одного клиента ...");
+            //Logger.info("Ожидаем подключения хотя бы одного клиента ...");
             while (work) {
                 if (arrByteMapForClients.size() == 0) wait = true;
                 else wait = false;
@@ -179,7 +180,7 @@ public class Server {
                 if (c == -1) {
                     clientChannel.close();
                     arrByteMapForClients.remove(clientChannel);
-                    //System.out.println("Клиент отключился");
+                    //Logger.info("Клиент отключился");
                     throw new EOFException("Канал закрыт");
                 } else if (c == 0) {
                     Logger.debug("Нет данных, ждём следующего события");
@@ -188,7 +189,7 @@ public class Server {
             }
             lengthBuffer.flip();
             int size = lengthBuffer.getInt();
-            //System.out.println("][" + size);
+            //Logger.info("][" + size);
             //lengthBuffer.clear();
 
             if(size <= 0) {
@@ -204,7 +205,7 @@ public class Server {
                 if (c == -1) {
                     clientChannel.close();
                     arrByteMapForClients.remove(clientChannel);
-                    //System.out.println("Клиент отключился");
+                    //Logger.info("Клиент отключился");
                     throw new EOFException("Канал закрыт");
                 }
             }
@@ -222,6 +223,7 @@ public class Server {
                 answerServer(clientChannel, "получен нулевой запрос или произошла ошибка при его получении");
                 return;
             }
+
             Logger.debug("Получен объект: {}", req);
             if (req.getCommand().getName().equals("exit")) {
                 Logger.info("Клиент запросил разрыв соединения (команда 'exit')");
@@ -235,17 +237,38 @@ public class Server {
                 work = false;
                 return;
             }
+            if (req.getCommand().getClass() == Class.forName("ru.kessi.common.commandManager.AuthCommand")) {
+                Logger.info("Получен запрос на вход от пользователя: login='{}', password='{}'", req.getLogin(), req.getPassword());
+                boolean isSuccess = DatabaseManager.authenticateUser(req.getLogin(), req.getPassword());
+                if (isSuccess) {
+                    answerServer(clientChannel, "auth correct");
+                } else {
+                    answerServer(clientChannel, "auth fail");
+                }
+                return;
+            }
+            if (req.getCommand().getClass() == Class.forName("ru.kessi.common.commandManager.RegNewUserCommand")) {
+                Logger.info("Получен запрос на регистрацию нового пользователя: login='{}', password='{}'", req.getLogin(), req.getPassword());
+                boolean isSuccess = DatabaseManager.registerUser(req.getLogin(), req.getPassword());
+                if (isSuccess) {
+                    answerServer(clientChannel, "reg correct");
+                } else {
+                    answerServer(clientChannel, "reg fail");
+                }
+                return;
+            }
+            // 
 
             buf.clear();
 
             ComParser comParser = new ComParser(collectionManager);
             String res;
             if(req.getArgs() != null) {
-                res = comParser.interpret(req.getCommand(), req.getArgs());
+                res = comParser.interpret(req.getLogin(), req.getCommand(), req.getArgs());
             } else if(req.getLabWork() != null) {
-                res = comParser.interpret(req.getCommand(), req.getLabWork());
+                res = comParser.interpret(req.getLogin(), req.getCommand(), req.getLabWork());
             } else {
-                res = comParser.interpret(req.getCommand(), null);
+                res = comParser.interpret(req.getLogin(), req.getCommand(), null);
             }
             answerServer(clientChannel, res);
             Logger.debug("Ответ отправлен клиенту: {}", res);

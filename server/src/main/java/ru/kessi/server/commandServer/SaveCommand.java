@@ -14,7 +14,7 @@ import ru.kessi.server.managers.CollectionManager;
 
 public class SaveCommand extends ru.kessi.common.commandManager.command.SaveCommand implements ServerCommand {
     @Override
-    public String execute(CollectionManager collectionManager, Object args){
+    public String execute(String login, CollectionManager collectionManager, Object args){
         try {
             String str = "dop_doc/collection.csv";
             

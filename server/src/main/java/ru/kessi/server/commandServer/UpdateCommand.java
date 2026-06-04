@@ -6,7 +6,7 @@ public abstract class UpdateCommand extends ru.kessi.common.commandManager.comma
         this.description = "обновить значение элемента коллекции, id которого равен заданному";
     }
     @Override
-    public void execute(CollectionManager collectionManager, Object args) {
+    public void execute(String login, CollectionManager collectionManager, Object args) {
         try {
             
             LabWorkBuilder labWorkBuilder = new LabWorkBuilder();

@@ -4,7 +4,7 @@ import ru.kessi.server.managers.CollectionManager;
 
 public class FilterStartsWithDescriptionCommand extends ru.kessi.common.commandManager.command.FilterStartsWithDescriptionCommand implements ServerCommand {
     @Override
-    public String execute(CollectionManager collectionManager, Object args) {
+    public String execute(String login, CollectionManager collectionManager, Object args) {
         return null;
         /*try {
             String str;

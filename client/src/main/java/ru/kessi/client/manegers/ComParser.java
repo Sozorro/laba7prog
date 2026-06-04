@@ -60,7 +60,7 @@ public class ComParser {
     }
 
     public Request interpret(String name, String... args) {
-        //System.out.println(name);
+        //Logger.info(name);
         ClientCommand command = this.commands.get(name);
         Object res = command.execute(args);
         if (command instanceof AbstractCommand) {

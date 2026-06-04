@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.TreeSet;
 
@@ -69,8 +68,8 @@ public class DatabaseManager {
             Logger.info("Подключение к базе данных прошло успешно");
             Logger.info("Начинаем инициализацию данных...");
 
-            //stmt.executeUpdate(textForUsersTableSQL);
-            //Logger.info("Таблица 'users' успешно создана или уже существует.");
+            stmt.executeUpdate(textForUsersTableSQL);
+            Logger.info("Таблица 'users' успешно создана или уже существует.");
            
             stmt.executeUpdate(textForLabWorksTableSQL);
             Logger.info("Таблица 'lab_works' успешно создана или уже существует.");
@@ -92,7 +91,39 @@ public class DatabaseManager {
 
     }
 
+    public static boolean registerUser(String login, String password) {
+        String insertSql = "INSERT INTO users (login, password) VALUES (?, ?)";
+        try (Connection conn = getConnectionDB();
+             PreparedStatement stmt = conn.prepareStatement(insertSql)) {
+            stmt.setString(1, login);
+            stmt.setString(2, PasswordManager.getHash(password));
+            stmt.executeUpdate();
+            Logger.info("Пользователь '{}' успешно зарегистрирован в БД", login);
+            return true;
+        } catch (SQLException e) {
+            Logger.warn("Не удалось зарегистрировать пользователя '{}'. Возможно, логин занят.", login);
+            return false;
+        }
+    }
 
+    public static boolean authenticateUser(String login, String password) {
+        String sql = "SELECT password FROM users WHERE login = ?";
+        try (Connection conn = getConnectionDB();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, login);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String passHash = rs.getString("password");
+                    String chackHash = PasswordManager.getHash(password);
+                    return passHash.equals(chackHash);
+                }
+                return false; // Пользователь не найден
+            }
+        } catch (SQLException e) {
+            Logger.error(e, "Ошибка при аутентификации пользователя");
+            return false;
+        }
+    }
     
     public static TreeSet<LabWork> loadCollectionToDB() {
 
@@ -143,13 +174,13 @@ public class DatabaseManager {
         return collection;
     }
 
-    public static long addLabworkToDB(LabWork labWork) {
+    public static long addLabworkToDB(String login, LabWork labWork) {
         String addLab = """
             INSERT INTO lab_works (
                 creation_date, name, coordinates_x, coordinates_y, minimal_point, 
                 personal_qualities_minimum, description, difficulty, 
-                author_name, author_height, author_weight, author_passport_id, author_hair_color
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                login_author, author_name, author_height, author_weight, author_passport_id, author_hair_color
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (Connection conn = getConnectionDB();
@@ -166,11 +197,12 @@ public class DatabaseManager {
             stmt.setString(8, labWork.getDifficulty().name());
             
             // Person (author):
-            stmt.setString(9, labWork.getAuthor().getName());
-            stmt.setDouble(10, labWork.getAuthor().getHeight());
-            stmt.setLong(11, labWork.getAuthor().getWeight());
-            stmt.setString(12, labWork.getAuthor().getPassportID());
-            stmt.setString(13, labWork.getAuthor().getHairColor().name());
+            stmt.setString(9, login);
+            stmt.setString(10, labWork.getAuthor().getName());
+            stmt.setDouble(11, labWork.getAuthor().getHeight());
+            stmt.setLong(12, labWork.getAuthor().getWeight());
+            stmt.setString(13, labWork.getAuthor().getPassportID());
+            stmt.setString(14, labWork.getAuthor().getHairColor().name());
            
             stmt.executeUpdate();
             
@@ -188,7 +220,7 @@ public class DatabaseManager {
 
     }
 
-    public static boolean delLabworkForDB(long id) {
+    public static boolean delLabworkForDB(String login, long id) {
         String delSql = "DELETE FROM lab_works WHERE id = ?";
         
         try (Connection conn = getConnectionDB();
@@ -212,7 +244,7 @@ public class DatabaseManager {
         }
     }
 
-    public static boolean updateLabworkToDB(LabWork labWork) {
+    public static boolean updateLabworkToDB(String login, LabWork labWork) {
         String updateSql = """
             UPDATE lab_works SET
                 creation_date = ?,
@@ -286,7 +318,7 @@ public class DatabaseManager {
 
     /* 
 
-    public String execute(CollectionManager collectionManager, Object args){
+    public String execute(String login, CollectionManager collectionManager, Object args){
         try {
             String str = "dop_doc/collection.csv";
             
@@ -324,7 +356,7 @@ public class DatabaseManager {
             }
             return ("Коллекция сохранена в файл");
         } catch (Exception e) {
-            System.out.println("Произошла непредвиденная ошибка. Создание элемента было остановлено и он не был добавлен в коллекцию");
+            Logger.info("Произошла непредвиденная ошибка. Создание элемента было остановлено и он не был добавлен в коллекцию");
             throw e;
         }
     

@@ -35,11 +35,11 @@ public class ComParser {
         return commands;
     }
 
-    public String interpret(CommandMetadata com, Object args) {
-        Logger.info(com.getName());
-        Logger.info(this.commands.get(com.getName()));
+    public String interpret(String login, CommandMetadata com, Object args) {
+        //Logger.info(com.getName());
+        //Logger.info(this.commands.get(com.getName()));
         ServerCommand command = this.commands.get(com.getName());
-        return command.execute(collectionManager, args);
+        return command.execute(login, collectionManager, args);
     }
     
 }

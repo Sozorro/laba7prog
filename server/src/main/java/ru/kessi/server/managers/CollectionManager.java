@@ -17,8 +17,8 @@ public class CollectionManager {
     public void loadCollection(TreeSet<LabWork> collection) {
         this.collection = collection;
     }
-    public String addLab(LabWork labWork) {
-        long id = DatabaseManager.addLabworkToDB(labWork);
+    public String addLab(String login, LabWork labWork) {
+        long id = DatabaseManager.addLabworkToDB(login, labWork);
         if (id != -1) {
             labWork.setId(id);
             this.collection.add(labWork);
@@ -26,10 +26,10 @@ public class CollectionManager {
         }
         return null;
     }
-    public String addLabs(ArrayList<LabWork> labWorks) {
+    public String addLabs(String login, ArrayList<LabWork> labWorks) {
         String s = "";
         for(var laba : labWorks) {
-            long id = DatabaseManager.addLabworkToDB(laba);
+            long id = DatabaseManager.addLabworkToDB(login, laba);
             if (id != -1) {
                 laba.setId(id);
                 this.collection.add(laba);
@@ -39,12 +39,12 @@ public class CollectionManager {
         return s;
     }
 
-    public String delLab(long id) {
+    public String delLab(String login, long id) {
         LabWork delLaba = findElem(id);
         if(delLaba == null) {
             throw new WrongParam("Несуществующий элемент");
         }
-        boolean delete = DatabaseManager.delLabworkForDB(delLaba.getId());
+        boolean delete = DatabaseManager.delLabworkForDB(login, delLaba.getId());
         if (delete == true) {
             collection.remove(delLaba);
             return ("Объект с id " + id + " удалён из коллекции и базы данных");
@@ -62,13 +62,13 @@ public class CollectionManager {
         }
     }
 
-    public String updateLab(long id, LabWork updLaba) {
+    public String updateLab(String login, long id, LabWork updLaba) {
         LabWork delLaba = findElem(id);
         if(delLaba == null) {
             throw new WrongParam("Несуществующий элемент");
         }
         updLaba.setId(id);
-        boolean updateElem = DatabaseManager.updateLabworkToDB(updLaba);
+        boolean updateElem = DatabaseManager.updateLabworkToDB(login, updLaba);
         if (updateElem != false) {
             collection.remove(delLaba);
             this.collection.add(updLaba);
