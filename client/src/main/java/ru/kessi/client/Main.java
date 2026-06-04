@@ -13,8 +13,8 @@ public class Main {
         scannerNow = new Scanner(System.in);
         while (true) {
             try {
-                System.out.println("----------------------");
-                System.out.println("Вы сейчас находитесь в меню создания клиента. Чтобы его создать и подключить к серверу введите: new_client(new). Если хотите выйти введите: exit(e)");
+                Logger.info("----------------------");
+                Logger.info("Вы сейчас находитесь в меню создания клиента. Чтобы его создать и подключить к серверу введите: new_client(new). Если хотите выйти введите: exit(e)");
                 String s = scannerNow.nextLine().trim();
                 if (s.equals("new_client") || s.equals("new")) {
                     Client client = new Client();

@@ -2,6 +2,8 @@ package ru.kessi.server.managers;
 
 import java.util.HashMap;
 
+import org.tinylog.Logger;
+
 import ru.kessi.common.commandManager.CommandMetadata;
 import ru.kessi.server.commandServer.AddCommand;
 import ru.kessi.server.commandServer.ClearCommand;
@@ -34,8 +36,8 @@ public class ComParser {
     }
 
     public String interpret(CommandMetadata com, Object args) {
-        System.out.println(com.getName());
-        System.out.println(this.commands.get(com.getName()));
+        Logger.info(com.getName());
+        Logger.info(this.commands.get(com.getName()));
         ServerCommand command = this.commands.get(com.getName());
         return command.execute(collectionManager, args);
     }

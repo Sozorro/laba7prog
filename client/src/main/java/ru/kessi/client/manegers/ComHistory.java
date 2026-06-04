@@ -2,6 +2,8 @@ package ru.kessi.client.manegers;
 
 import java.util.ArrayList;
 
+import org.tinylog.Logger;
+
 public class ComHistory {
     private static ArrayList<ComExec> history = new ArrayList<>();
 
@@ -32,12 +34,12 @@ public class ComHistory {
     }
     public static void printHistory() {
         if (history.isEmpty()) {
-            System.out.println("История команд пуста");
+            Logger.info("История команд пуста");
         } else {
             for (ComExec com : history) {
-                System.out.println("Команда: " + com.getName());
-                System.out.println("Параметры: " + com.getRes());
-                System.out.println("-----------------");
+                Logger.info("Команда: " + com.getName());
+                Logger.info("Параметры: " + com.getRes());
+                Logger.info("-----------------");
             }
         }
     }

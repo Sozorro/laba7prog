@@ -3,10 +3,12 @@ package ru.kessi.client.commandClient;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import ru.kessi.common.exceptions.WrongParam;
+import org.tinylog.Logger;
+
 import ru.kessi.client.io.Input;
 import ru.kessi.client.io.InputFile;
 import ru.kessi.client.manegers.ComHistory;
+import ru.kessi.common.exceptions.WrongParam;
 
 public class ExecuteScriptCommand extends ru.kessi.common.commandManager.command.ExecuteScriptCommand implements ClientCommand {
     @Override
@@ -21,14 +23,14 @@ public class ExecuteScriptCommand extends ru.kessi.common.commandManager.command
             ComHistory.addCom(name, str);
             return null;
         } catch (FileNotFoundException e) {
-            System.out.println("Данный файл не найден");
+            Logger.info("Данный файл не найден");
             String prov = Input.getParams("\tЕсли хотите попробовать ещё раз введите: \"(y)yes\" \n \tИначе введите: \"(n)no\" \n \t");
             if(prov != null && (prov.equals("yes") || prov.equals("y"))) {
                 return execute();
             }
             throw new WrongParam("Недействительный файл");
         } catch (WrongParam e) {
-            System.out.println(e.getMessage());
+            Logger.error(e);
             String prov = Input.getParams("\tЕсли хотите попробовать ещё раз введите: \"(y)yes\" \n \tИначе введите: \"(n)no\" \n \t");
             if(prov != null && (prov.equals("yes") || prov.equals("y"))) {
                 return execute();

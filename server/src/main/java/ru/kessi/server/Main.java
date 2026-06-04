@@ -26,8 +26,8 @@ public class Main {
         scannerNow = new Scanner(System.in);
         while (true) {
             try {
-                System.out.println("----------------------");
-                System.out.println("Для запуска сервера введите 'start':");
+                Logger.info("----------------------");
+                Logger.info("Для запуска сервера введите 'start':");
                 String s = readNextLine();
                 if (s == null) continue;
                 if (s.equals("start")) {
@@ -39,7 +39,7 @@ public class Main {
             } catch (NoSuchElementException e) { //if end file(ctrl+D)
                 scannerNow = new Scanner(System.in);
             } catch (WrongParam e) { //if end file(ctrl+D)
-                System.out.println(e.getMessage());
+                Logger.error(e);
                 scannerNow = new Scanner(System.in);
             }
         }
@@ -51,7 +51,7 @@ public class Main {
         try {
             String s = scannerNow.nextLine().trim();
             while (s.equals("") || s == null) {
-                System.out.println("ожидание строки");
+                Logger.info("ожидание строки");
                 s = scannerNow.nextLine().trim();
             }
             return s;

@@ -2,10 +2,12 @@ package ru.kessi.client.builders;
 
 import java.util.function.Function;
 
-import ru.kessi.common.exceptions.WrongAction;
-import ru.kessi.common.exceptions.WrongParam;
+import org.tinylog.Logger;
+
 import ru.kessi.client.io.Input;
 import ru.kessi.client.io.InputFile;
+import ru.kessi.common.exceptions.WrongAction;
+import ru.kessi.common.exceptions.WrongParam;
 
 public class Builder {
     protected final Function<String, String[]> DEFAULT_GETPAR = (s) -> Input.getParams(s).split(" ");
@@ -15,7 +17,7 @@ public class Builder {
             try {
                 return action.apply(params);
             } catch (WrongParam e) {
-                System.out.println(e.getMessage());
+                Logger.error(e);
                 if(InputFile.readFile == false)  {
                     String prov = Input.getParams("\tЕсли хотите попробовать ещё раз введите: \"(y)yes\" \n" + 
                                         "\tЕсли хотите начать создание всей лабораторной работы сначала введите: \"(n)no\" \n" +
@@ -32,7 +34,7 @@ public class Builder {
                         throw new WrongAction(); // выйти
                     }
                 } else {
-                    System.out.println("\tВведены не все параметры или они некорректно заданы, хотите ввести их ещё раз в интерактивном режиме? \n" );
+                    Logger.info("\tВведены не все параметры или они некорректно заданы, хотите ввести их ещё раз в интерактивном режиме?" );
                     String prov = null;
                     while (prov == null) {
                         prov = Input.getParams("\tВведите: \"(y)yes\" или \"(n)no\" \n");

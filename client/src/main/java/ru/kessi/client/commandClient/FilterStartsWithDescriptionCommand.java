@@ -1,5 +1,7 @@
 package ru.kessi.client.commandClient;
 
+import org.tinylog.Logger;
+
 import ru.kessi.client.io.Input;
 import ru.kessi.client.io.InputFile;
 import ru.kessi.client.manegers.ComHistory;
@@ -16,10 +18,10 @@ public class FilterStartsWithDescriptionCommand extends ru.kessi.common.commandM
             ComHistory.addCom(name, str);
             return str;
         } catch (NumberFormatException e) {
-            System.out.println("Неверный формат id");
+            Logger.info("Неверный формат id");
             throw e;
         } catch (WrongParam e) {
-            System.out.println(e.getMessage());
+            Logger.error(e);
             String prov = null;
             while (prov == null) {
                 prov = Input.getParams("\tЕсли хотите попробовать ещё раз введите: \"(y)yes\" \n \tИначе введите: \"(n)no\" \n \t");
@@ -27,7 +29,7 @@ public class FilterStartsWithDescriptionCommand extends ru.kessi.common.commandM
             if(prov.equals("yes") || prov.equals("y")) {
                 return execute(Input.getParams("Введите подстроку: "));
             } else {
-                System.out.println("Комнда была пропущена");
+                Logger.info("Комнда была пропущена");
             }
             throw e;
         }
