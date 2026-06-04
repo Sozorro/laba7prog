@@ -11,20 +11,20 @@ import ru.kessi.common.exceptions.WrongParam;
 import ru.kessi.server.database.DatabaseManager;
 
 public class CollectionManager {
-    private TreeSet<LabWork> labwork = new TreeSet<>(new idComparator());
+    private TreeSet<LabWork> collection = new TreeSet<>(new idComparator());
     private java.util.Date creationDate = new java.util.Date();
-    private long idCounter = 1;
     
-    public void loadCollection(TreeSet<LabWork> labwork) {
-        this.labwork = labwork;
+    public void loadCollection(TreeSet<LabWork> collection) {
+        this.collection = collection;
     }
     public String addLab(LabWork labWork) {
         long id = DatabaseManager.addLabworkToDB(labWork);
         if (id != -1) {
             labWork.setId(id);
+            this.collection.add(labWork);
+            return "Объект добавлен в коллекцию и сохранен в БД";
         }
-        this.labwork.add(labWork);
-        return "Объект добавлен в коллекцию и сохранен в БД";
+        return null;
     }
     public String addLabs(ArrayList<LabWork> labWorks) {
         String s = "";
@@ -32,9 +32,9 @@ public class CollectionManager {
             long id = DatabaseManager.addLabworkToDB(laba);
             if (id != -1) {
                 laba.setId(id);
+                this.collection.add(laba);
+                s += ("Объект " + laba.toString() + " добавлен в коллекцию и сохранен в БД \n");
             }
-            this.labwork.add(laba);
-            s += ("Объект " + laba.toString() + " добавлен в коллекцию и сохранен в БД \n");
         }
         return s;
     }
@@ -46,7 +46,7 @@ public class CollectionManager {
         }
         boolean delete = DatabaseManager.delLabworkForDB(delLaba.getId());
         if (delete == true) {
-            labwork.remove(delLaba);
+            collection.remove(delLaba);
             return ("Объект с id " + id + " удалён из коллекции и базы данных");
         } else {
             return "Возникла ошибка при попытке удаления объекта";
@@ -55,7 +55,7 @@ public class CollectionManager {
     public String clearCollection() {
         long countElems = DatabaseManager.clearDatabase();
         if (countElems != -1) {
-            labwork.clear();
+            collection.clear();
             return "Коллекция очищена из базы данных удалено " + countElems + " объектов";
         } else {
             return "Возникла ошибка при попытке удаления объектов";
@@ -70,8 +70,8 @@ public class CollectionManager {
         updLaba.setId(id);
         boolean updateElem = DatabaseManager.updateLabworkToDB(updLaba);
         if (updateElem != false) {
-            labwork.remove(delLaba);
-            this.labwork.add(updLaba);
+            collection.remove(delLaba);
+            this.collection.add(updLaba);
             return ("Объект с id " + id + " обновлён");
         } else {
             return "Возникла ошибка при попытке изменения объекта";
@@ -79,24 +79,24 @@ public class CollectionManager {
     }
 
     public LabWork findElem(long id) {
-        return labwork.stream()
+        return collection.stream()
             .filter(laba -> laba.getId() == id)
             .findFirst()
             .orElse(null);
     }
     public ArrayList<LabWork> findElemsHeavierPerson(Person author) {
-        return labwork.stream()
+        return collection.stream()
             .filter(laba -> laba.getAuthor().getWeight() > author.getWeight())
             .collect(Collectors.toCollection(ArrayList::new));
     }
     public ArrayList<LabWork> findElemsSubstring(String prefDescription) {
-        return labwork.stream()
+        return collection.stream()
             .filter(laba -> laba.getDescription().startsWith(prefDescription))
             .collect(Collectors.toCollection(ArrayList::new));
     }
 
     public TreeSet<LabWork> getElems() {
-        return labwork;
+        return collection;
     }
 
     class idComparator implements Comparator<LabWork> {
@@ -106,13 +106,13 @@ public class CollectionManager {
         }
     }
 
-    public long getIdCounter() {
-        return idCounter;
+    public long getClollectionSize() {
+        return collection.size();
     }
 
     public String toString() {
-        return "Объект Collection:\nType: " + labwork.getClass() + "\n" +
+        return "Объект Collection:\nType: " + collection.getClass() + "\n" +
             "creationDate: " + creationDate + "\n" +
-            "Size: " + labwork.size();
+            "Size: " + collection.size();
     }
 }

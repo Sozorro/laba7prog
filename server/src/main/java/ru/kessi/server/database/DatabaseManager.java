@@ -34,14 +34,12 @@ public class DatabaseManager {
     }
 
     public static void initDatabase() {
-        /* String textForUsersTableSQL = """
+        String textForUsersTableSQL = """
             CREATE TABLE IF NOT EXISTS users (
                 login VARCHAR(25) PRIMARY KEY,
                 password VARCHAR(255) NOT NULL
             );
             """; 
-            */
-            //login_author VARCHAR(50) NOT NULL REFERENCES users(login),
         String textForLabWorksTableSQL = """
             CREATE TABLE IF NOT EXISTS lab_works (
                 id BIGSERIAL PRIMARY KEY,
@@ -52,13 +50,14 @@ public class DatabaseManager {
                 minimal_point INTEGER NOT NULL CHECK (minimal_point > 0),
                 personal_qualities_minimum INTEGER NOT NULL CHECK (personal_qualities_minimum > 0),
                 description VARCHAR(3271) NOT NULL,
-                difficulty VARCHAR(50),
+                difficulty VARCHAR(50) NOT NULL,
                 
                 -- Person (author):
+                login_author VARCHAR(25) NOT NULL REFERENCES users(login),
                 author_name VARCHAR(255) NOT NULL,
                 author_height DOUBLE PRECISION NOT NULL CHECK (author_height > 0),
                 author_weight BIGINT NOT NULL CHECK (author_weight > 0),
-                author_passport_id VARCHAR(255),
+                author_passport_id VARCHAR(255) NOT NULL,
                 author_hair_color VARCHAR(50) NOT NULL
             );
             """;
