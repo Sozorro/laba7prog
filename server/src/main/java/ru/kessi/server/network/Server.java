@@ -55,8 +55,6 @@ public class Server {
         Logger.info("Сервер host={} port={} запущен", host, port);
     }
     public void stop() {
-        SaveCommand saveCommand = new SaveCommand();
-        saveCommand.execute(collectionManager, null);
         work = false;
         if (dotsThread != null) {
             dotsThread.interrupt();
@@ -82,23 +80,9 @@ public class Server {
             collectionManager.loadCollection(DatabaseManager.loadCollectionToDB());
             
             Logger.info("Коллекция успешно загружена из базы данных в память.");
-            
-            //ExecuteScriptCommand executeScriptCommand = new ExecuteScriptCommand();
-            //executeScriptCommand.execute(collectionManager, null);
 
             Logger.info("Сервер host={} port={} создн и ожидает подключения", host, port);
 
-            /*try {
-                Connection testConn = DatabaseManager.getConnectionDB();
-                try (var stmt = testConn.createStatement();
-                    var rs = stmt.executeQuery("SELECT version()")) {
-                    if (rs.next()) {
-                        Logger.info("Подключение к БД прошло успешно. Версия БД: {}", rs.getString("version"));
-                    }
-                }
-            } catch (SQLException e) {
-                Logger.error(e, "КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных");
-            }*/
 
         } catch (Exception e) {
             Logger.error(e, "Ошибка при попытке создать сервер");
