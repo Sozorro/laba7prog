@@ -8,8 +8,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -20,9 +18,6 @@ import org.tinylog.Logger;
 import org.tinylog.ThreadContext;
 
 import ru.kessi.common.Request;
-import ru.kessi.common.commandManager.RegNewUserCommand;
-import ru.kessi.server.commandServer.ExecuteScriptCommand;
-import ru.kessi.server.commandServer.SaveCommand;
 import ru.kessi.server.database.DatabaseManager;
 import ru.kessi.server.managers.CollectionManager;
 import ru.kessi.server.managers.ComParser;
@@ -237,7 +232,7 @@ public class Server {
                 work = false;
                 return;
             }
-            if (req.getCommand().getClass() == Class.forName("ru.kessi.common.commandManager.AuthCommand")) {
+            if (req.getCommand().getName().equals("authentication")) {
                 Logger.info("Получен запрос на вход от пользователя: login='{}', password='{}'", req.getLogin(), req.getPassword());
                 boolean isSuccess = DatabaseManager.authenticateUser(req.getLogin(), req.getPassword());
                 if (isSuccess) {
@@ -247,7 +242,7 @@ public class Server {
                 }
                 return;
             }
-            if (req.getCommand().getClass() == Class.forName("ru.kessi.common.commandManager.RegNewUserCommand")) {
+            if (req.getCommand().getName().equals("registrationNewUser")) {
                 Logger.info("Получен запрос на регистрацию нового пользователя: login='{}', password='{}'", req.getLogin(), req.getPassword());
                 boolean isSuccess = DatabaseManager.registerUser(req.getLogin(), req.getPassword());
                 if (isSuccess) {

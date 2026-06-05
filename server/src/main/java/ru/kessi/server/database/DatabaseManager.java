@@ -17,6 +17,7 @@ import ru.kessi.common.entites.LabWork;
 import ru.kessi.common.entites.Person;
 import ru.kessi.common.entites.enums.Color;
 import ru.kessi.common.entites.enums.Difficulty;
+import ru.kessi.common.exceptions.NotEnoughRights;
 
 public class DatabaseManager {
     private static final String URL = "jdbc:postgresql://localhost:5432/collection";
@@ -220,20 +221,30 @@ public class DatabaseManager {
 
     }
 
-    public static boolean delLabworkForDB(String login, long id) {
-        String delSql = "DELETE FROM lab_works WHERE id = ?";
+    public static boolean delLabworkForDB(String login, long id) throws NotEnoughRights {
+        String delSql = "DELETE FROM lab_works WHERE id = ? AND login_author = ?";
         
         try (Connection conn = getConnectionDB();
             PreparedStatement stmt = conn.prepareStatement(delSql)) {
             
             stmt.setLong(1, id);
+            stmt.setString(2, login);
             
             long updateStr = stmt.executeUpdate();
             
             if (updateStr > 0) {
-                Logger.info("Объект с id={} успешно удален из БД", id);
+                Logger.info("Объект с id={} успешно удален из БД пользователем {}", id, login);
                 return true;
             } else {
+                String checkElem = "SELECT * FROM lab_works WHERE id = ?";
+                try (PreparedStatement checkStmt = conn.prepareStatement(checkElem)) {
+                    checkStmt.setLong(1, id);
+                    try (ResultSet rs = checkStmt.executeQuery()) {
+                        if (rs.next()) {
+                            throw new NotEnoughRights("Недостаточно прав для удаления объекта с id = " + id);
+                        }
+                    }
+                }
                 Logger.warn("Объект с id={} не найден в БД", id);
                 return false;
             }
@@ -260,13 +271,11 @@ public class DatabaseManager {
                 author_weight = ?,
                 author_passport_id = ?,
                 author_hair_color = ?
-            WHERE id = ?
+            WHERE id = ? AND login_author = ?
             """;
         
         try (Connection conn = getConnectionDB();
             PreparedStatement stmt = conn.prepareStatement(updateSql)) {
-
-            stmt.setLong(14, labWork.getId());
             
             stmt.setTimestamp(1, new Timestamp(labWork.getCreationDate().getTime()));
             stmt.setString(2, labWork.getName());
@@ -283,6 +292,9 @@ public class DatabaseManager {
             stmt.setLong(11, labWork.getAuthor().getWeight());
             stmt.setString(12, labWork.getAuthor().getPassportID());
             stmt.setString(13, labWork.getAuthor().getHairColor().name());
+
+            stmt.setLong(14, labWork.getId());
+            stmt.setString(15, login);
             
             long updateStr = stmt.executeUpdate();
             
@@ -290,6 +302,15 @@ public class DatabaseManager {
                 Logger.info("Объект с id={} успешно обновлен в БД", labWork.getId());
                 return true;
             } else {
+                String checkElem = "SELECT * FROM lab_works WHERE id = ?";
+                try (PreparedStatement checkStmt = conn.prepareStatement(checkElem)) {
+                    checkStmt.setLong(1, labWork.getId());
+                    try (ResultSet rs = checkStmt.executeQuery()) {
+                        if (rs.next()) {
+                            throw new NotEnoughRights("Недостаточно прав для удаления объекта с id = " + labWork.getId());
+                        }
+                    }
+                }
                 Logger.warn("Объект с id={} не найден в БД", labWork.getId());
                 return false;
             }

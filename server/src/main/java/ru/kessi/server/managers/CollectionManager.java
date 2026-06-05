@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import ru.kessi.common.entites.LabWork;
 import ru.kessi.common.entites.Person;
+import ru.kessi.common.exceptions.NotEnoughRights;
 import ru.kessi.common.exceptions.WrongParam;
 import ru.kessi.server.database.DatabaseManager;
 
@@ -40,17 +41,22 @@ public class CollectionManager {
     }
 
     public String delLab(String login, long id) {
-        LabWork delLaba = findElem(id);
-        if(delLaba == null) {
-            throw new WrongParam("Несуществующий элемент");
+        try {
+            LabWork delLaba = findElem(id);
+            if(delLaba == null) {
+                throw new WrongParam("Несуществующий элемент");
+            }
+            boolean delete = DatabaseManager.delLabworkForDB(login, delLaba.getId());
+            if (delete == true) {
+                collection.remove(delLaba);
+                return "Объект с id " + id + " удалён из коллекции и базы данных";
+            } else {
+                return "Возникла ошибка при попытке удаления объекта";
+            }
+        } catch (NotEnoughRights e) {
+            return e.getMessage();
         }
-        boolean delete = DatabaseManager.delLabworkForDB(login, delLaba.getId());
-        if (delete == true) {
-            collection.remove(delLaba);
-            return ("Объект с id " + id + " удалён из коллекции и базы данных");
-        } else {
-            return "Возникла ошибка при попытке удаления объекта";
-        }
+        
     }
     public String clearCollection() {
         long countElems = DatabaseManager.clearDatabase();
@@ -63,18 +69,22 @@ public class CollectionManager {
     }
 
     public String updateLab(String login, long id, LabWork updLaba) {
-        LabWork delLaba = findElem(id);
-        if(delLaba == null) {
-            throw new WrongParam("Несуществующий элемент");
-        }
-        updLaba.setId(id);
-        boolean updateElem = DatabaseManager.updateLabworkToDB(login, updLaba);
-        if (updateElem != false) {
-            collection.remove(delLaba);
-            this.collection.add(updLaba);
-            return ("Объект с id " + id + " обновлён");
-        } else {
-            return "Возникла ошибка при попытке изменения объекта";
+        try {
+            LabWork delLaba = findElem(id);
+            if(delLaba == null) {
+                throw new WrongParam("Несуществующий элемент");
+            }
+            updLaba.setId(id);
+            boolean updateElem = DatabaseManager.updateLabworkToDB(login, updLaba);
+            if (updateElem != false) {
+                collection.remove(delLaba);
+                this.collection.add(updLaba);
+                return ("Объект с id " + id + " обновлён");
+            } else {
+                return "Возникла ошибка при попытке изменения объекта";
+            }
+        } catch (NotEnoughRights e) {
+            return e.getMessage();
         }
     }
 
