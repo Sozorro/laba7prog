@@ -1,50 +1,23 @@
 package ru.kessi.server.commandServer;
 
-public abstract class UpdateCommand extends ru.kessi.common.commandManager.command.UpdateCommand implements ServerCommand {
-    /*public UpdateCom() {
-        this.name = "update";
-        this.description = "обновить значение элемента коллекции, id которого равен заданному";
-    }
+import org.tinylog.Logger;
+
+import ru.kessi.common.entites.LabWork;
+import ru.kessi.common.exceptions.WrongParam;
+import ru.kessi.server.managers.CollectionManager;
+
+public class UpdateCommand extends ru.kessi.common.commandManager.command.UpdateCommand implements ServerCommand {
     @Override
-    public void execute(String login, CollectionManager collectionManager, Object args) {
-        try {
-            
-            LabWorkBuilder labWorkBuilder = new LabWorkBuilder();
-            LabWork laba = null;
-            if (args.length == 14) laba = labWorkBuilder.makeLabWork(args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13]);
-            else if (InputFile.readFile == false) laba = labWorkBuilder.makeLabWork();
-            else {
-                Logger.info("\tВведены не все параметры или они некорректно заданы, хотите ввести их ещё раз в интерактивном режиме? \n" );
-                String prov = null;
-                while (prov == null) {
-                    prov = Input.getParams("\tВведите: \"(y)yes\" или \"(n)no\" \n");
-                }
-                if (prov.equals("yes") || prov.equals("y")) {
-                    laba = labWorkBuilder.makeLabWork();
-                } else {
-                    Logger.info("Комнда была пропущена");
-                    throw new WrongAction();
-                }
-            }
-            if(laba == null) return;
-
-            String[] str;
-            if(args == null || args.length == 0 || (InputFile.readFile == false && args.length != 0)) {
-                str = Input.getParams("Какой элемент обновить?").split(" ");
-                if (str.length != 1) throw new WrongParam("Неверный формат ввода");
-            }
-            else str = args;
-            
-
-            collectionManager.updateLab(Long.parseLong(str[0]), laba);
-            ComHistory.addCom(name, "Id обновлённого элемента: " + str[0] + "\nНовый элемент: \n" + laba.getTabString(1));
-            
-        } catch (NumberFormatException e) {
-            Logger.info("Неверный формат id");
-        } catch (WrongParam e) {
-            Logger.info("Из-за ошибки ввода элемент не был обновлён");
-        } catch (WrongAction e) {
-            Logger.info("Создание было остановлено и элемент не был обновлён");
+    public String execute(String login, CollectionManager collectionManager, Object args){
+        try { 
+            if(args != null && args instanceof LabWork) {
+                LabWork laba = (LabWork) args;
+                return collectionManager.updateLab(login, laba);
+            } else throw new WrongParam("Ошибка в элементе коллекции, такой объект невозможно добавить");
+        } catch (Exception e) {
+            Logger.error(e, "Ошибка при обновлении");
+            Logger.info("Произошла непредвиденная ошибка. Элемент не был добавлен в коллекцию");
+            throw e;
         }
-    }*/
+    }
 }

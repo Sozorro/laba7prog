@@ -5,6 +5,8 @@ import java.util.Comparator;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.tinylog.Logger;
+
 import ru.kessi.common.entites.LabWork;
 import ru.kessi.common.entites.Person;
 import ru.kessi.common.exceptions.NotEnoughRights;
@@ -68,18 +70,18 @@ public class CollectionManager {
         }
     }
 
-    public synchronized String updateLab(String login, long id, LabWork updLaba) {
+    public synchronized String updateLab(String login, LabWork updLaba) {
         try {
-            LabWork delLaba = findElem(id);
+            LabWork delLaba = findElem(updLaba.getId());
+            Logger.debug("delLaba = null? {}", (delLaba == null));
             if(delLaba == null) {
                 throw new WrongParam("Несуществующий элемент");
             }
-            updLaba.setId(id);
             boolean updateElem = DatabaseManager.updateLabworkToDB(login, updLaba);
             if (updateElem != false) {
                 collection.remove(delLaba);
                 this.collection.add(updLaba);
-                return ("Объект с id " + id + " обновлён");
+                return ("Объект с id " + updLaba.getId() + " обновлён");
             } else {
                 return "Возникла ошибка при попытке изменения объекта";
             }

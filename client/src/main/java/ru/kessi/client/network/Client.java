@@ -21,6 +21,7 @@ public class Client {
     private String host;
     private int port;
 
+    private boolean checkAuth = true;
     private String login;
     private String password;
 
@@ -42,7 +43,7 @@ public class Client {
         try {
             if (socketChannel != null && socketChannel.isOpen()) {
                 socketChannel.close();
-                Logger.info("Клиент удалён");
+                Logger.debug("Клиент удалён");
             }
         } catch (Exception e) {
             Logger.error(e, "Ошибка при попытке удалить клиента");
@@ -61,8 +62,9 @@ public class Client {
                 while (true) {
                     try {
                         Input.initInput(scanner);
-                        boolean checkAuth = false;
-                        if(login == null && password == null) checkAuth = authenticateUser(scanner);
+                        if(login == null && password == null) {
+                            checkAuth = authenticateUser(scanner);
+                        }
                         if(checkAuth == true)  request(scanner);
                         break; // Выход, если request() завершился нормально (например, exit)
                     } catch (IOException e) {
@@ -97,6 +99,7 @@ public class Client {
 
             try {
                 if (socketChannel.connect(new InetSocketAddress(host, port))) {
+                    Logger.info("Подключение установлено", attempt);
                     Logger.debug("Подключение установлено с попытки {}", attempt);
                     return true;
                 }

@@ -302,6 +302,7 @@ public class DatabaseManager {
                 Logger.info("Объект с id={} успешно обновлен в БД", labWork.getId());
                 return true;
             } else {
+                Logger.info("][][][]");
                 String checkElem = "SELECT * FROM lab_works WHERE id = ?";
                 try (PreparedStatement checkStmt = conn.prepareStatement(checkElem)) {
                     checkStmt.setLong(1, labWork.getId());

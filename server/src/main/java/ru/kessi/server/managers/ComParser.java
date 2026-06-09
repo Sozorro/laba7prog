@@ -2,9 +2,8 @@ package ru.kessi.server.managers;
 
 import java.util.HashMap;
 
-import org.tinylog.Logger;
-
 import ru.kessi.common.commandManager.CommandMetadata;
+import ru.kessi.common.exceptions.WrongParam;
 import ru.kessi.server.commandServer.AddCommand;
 import ru.kessi.server.commandServer.ClearCommand;
 import ru.kessi.server.commandServer.CountGreaterThanAuthorCommand;
@@ -13,6 +12,7 @@ import ru.kessi.server.commandServer.InfoCommand;
 import ru.kessi.server.commandServer.RemoveByIdCommand;
 import ru.kessi.server.commandServer.ServerCommand;
 import ru.kessi.server.commandServer.ShowCommand;
+import ru.kessi.server.commandServer.UpdateCommand;
 
 public class ComParser {
     private HashMap<String, ServerCommand> commands = new HashMap<>();
@@ -28,7 +28,7 @@ public class ComParser {
         commands.put("remove", new RemoveByIdCommand());
         commands.put("show", new ShowCommand());
         //commands.put("stop", new StopCom());
-        //commands.put("update", new UpdateCom());
+        commands.put("update", new UpdateCommand());
     }
 
     public HashMap<String, ServerCommand> getCommands() {
@@ -36,10 +36,17 @@ public class ComParser {
     }
 
     public String interpret(String login, CommandMetadata com, Object args) {
-        //Logger.info(com.getName());
-        //Logger.info(this.commands.get(com.getName()));
-        ServerCommand command = this.commands.get(com.getName());
-        return command.execute(login, collectionManager, args);
+        try {
+            //Logger.info(com.getName());
+            //Logger.info(this.commands.get(com.getName()));
+            ServerCommand command = this.commands.get(com.getName());
+            return command.execute(login, collectionManager, args);
+        } catch (WrongParam e) {
+            return e.getMessage();
+        } catch (Exception e) {
+            return "Произошла ошибка при выполнении команды, попробуйте позже";
+        }
+        
     }
     
 }

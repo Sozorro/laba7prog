@@ -15,6 +15,7 @@ import ru.kessi.client.commandClient.InfoCommand;
 import ru.kessi.client.commandClient.RemoveByIdCommand;
 import ru.kessi.client.commandClient.ShowCommand;
 import ru.kessi.client.commandClient.StopCommand;
+import ru.kessi.client.commandClient.UpdateCommand;
 import ru.kessi.common.Request;
 import ru.kessi.common.commandManager.AbstractCommand;
 import ru.kessi.common.entites.LabWork;
@@ -38,7 +39,7 @@ public class ComParser {
         commands.put("remove", new RemoveByIdCommand());
         commands.put("show", new ShowCommand());
         commands.put("stop", new StopCommand());
-        //commands.put("update", new UpdateCom());
+        commands.put("update", new UpdateCommand());
 
         commandsRequests.put("add", new ru.kessi.common.commandManager.command.AddCommand());
         commandsRequests.put("clear", new ru.kessi.common.commandManager.command.ClearCommand());
@@ -52,6 +53,7 @@ public class ComParser {
         commandsRequests.put("remove", new ru.kessi.common.commandManager.command.RemoveByIdCommand());
         commandsRequests.put("show", new ru.kessi.common.commandManager.command.ShowCommand());
         commandsRequests.put("stop", new ru.kessi.common.commandManager.command.StopCommand());
+        commandsRequests.put("update", new ru.kessi.common.commandManager.command.UpdateCommand());
 
     }
 
