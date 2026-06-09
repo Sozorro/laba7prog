@@ -12,21 +12,22 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.tinylog.Logger;
-import org.tinylog.ThreadContext;
 
 import ru.kessi.common.Request;
 import ru.kessi.server.database.DatabaseManager;
 import ru.kessi.server.managers.CollectionManager;
-import ru.kessi.server.managers.ComParser;
 
 public class Server {
     private final String host;
     private final int port;
     private ServerSocketChannel serverSocketChannel;
-    private boolean work = false;
+    public volatile static boolean work = false;
     private volatile boolean wait = false;
     private CollectionManager collectionManager;
     private Selector selector;
@@ -34,6 +35,11 @@ public class Server {
     private boolean isPaused = false; 
     private Thread serverThread;
     private Thread dotsThread;
+    private static Lock lock = new ReentrantLock();
+
+    //private final Queue<Runnable> queueForFixedPool = new ConcurrentLinkedQueue<>();
+    private static ExecutorService fixedReadPool = Executors.newFixedThreadPool(10);
+    private static ExecutorService cachedHandlePool = Executors.newCachedThreadPool(); 
 
     public Server(String host, int port) {
         this.host = host;
@@ -126,14 +132,13 @@ public class Server {
                     iterator.remove();
                     if (key.isAcceptable()) {
                         try {
-                            //serverSocketChannel = (ServerSocketChannel) key.channel();
                             SocketChannel clientChannel = serverSocketChannel.accept();
-                                if (clientChannel == null) {
-                                    Logger.warn("null клиент при подключении");
-                                    return;
-                                }
-                            clientChannel.configureBlocking(false);
-                            clientChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                            if (clientChannel == null) {
+                                Logger.warn("null клиент при подключении");
+                                return;
+                            }
+                            clientChannel.configureBlocking(false); 
+                            clientChannel.register(selector, SelectionKey.OP_READ);
                             arrByteMapForClients.put(clientChannel, new ByteArrayOutputStream());
                             Logger.info("Клиент подключён, адрес={}", clientChannel.getRemoteAddress());
                         } catch (Exception e) {
@@ -141,22 +146,34 @@ public class Server {
                         }
                     } else if (key.isReadable()) {
                         SocketChannel clientChannel = (SocketChannel) key.channel();
-                        String requestId = UUID.randomUUID().toString().substring(0, 8);
-                        ThreadContext.put("requestId", requestId);
-                        try {
-                            Logger.debug("Есть данные для чтения от: {}", clientChannel);
-                            clientRequest(clientChannel);
-                            Logger.info("Команда обработана");
-                        } catch (EOFException e) {
-                            if (key != null) {
-                                key.cancel();
-                                clientChannel.close();
-                                arrByteMapForClients.remove(clientChannel);
-                                Logger.info("Клиент отключился");
+                        key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
+
+                        //String requestId = UUID.randomUUID().toString().substring(0, 8);
+                        //ThreadContext.put("requestId", requestId);
+
+                        fixedReadPool.submit(() -> {
+                            //try {
+                                readCommand(selector, key, clientChannel, collectionManager, cachedHandlePool);
+                            //}
+                            /*  catch (EOFException e) {
+                                if (key != null) {
+                                    key.cancel();
+                                    clientChannel.close();
+                                    arrByteMapForClients.remove(clientChannel);
+                                    Logger.info("Клиент отключился");
+                                }
+                            } 
+                           catch (Exception e) {
+                                //key.cancel();
                             }
-                        }  finally {
-                            ThreadContext.clear();
-                        }
+                            finally {
+                                if (key.isValid()) {
+                                    key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+                                }
+                                selector.wakeup(); 
+                                ThreadContext.clear();
+                            } */
+                        });
                     }
                 }
             }
@@ -167,127 +184,63 @@ public class Server {
         }
     }
 
-    public void clientRequest(SocketChannel clientChannel) throws EOFException {
+    public void readCommand(Selector selector, SelectionKey key, SocketChannel clientChannel, CollectionManager collectionManager, ExecutorService nextPool) {
+        if (!key.isValid()) return;
         try {
+        //(ByteArrayOutputStream byteMapForClients = new ByteArrayOutputStream();){
             ByteBuffer lengthBuffer = ByteBuffer.allocate(4);
             while (lengthBuffer.hasRemaining()) {
                 int c = clientChannel.read(lengthBuffer);
                 if (c == -1) {
                     clientChannel.close();
+                    key.cancel();
                     arrByteMapForClients.remove(clientChannel);
-                    //Logger.info("Клиент отключился");
-                    throw new EOFException("Канал закрыт");
+                    throw new EOFException("Канал клиента закрыт");
                 } else if (c == 0) {
-                    Logger.debug("Нет данных, ждём следующего события");
-                    return;
+                    Logger.debug("Ждём данных");
+                    Thread.sleep(100); 
+                    continue;
                 }   
             }
             lengthBuffer.flip();
             int size = lengthBuffer.getInt();
-            //Logger.info("][" + size);
-            //lengthBuffer.clear();
-
             if(size <= 0) {
                 Logger.warn("Получен некорректный размер сообщения");
                 return;
             }
 
             ByteBuffer buf = ByteBuffer.allocate(size);
-            ByteArrayOutputStream arrByte = arrByteMapForClients.get(clientChannel);
 
             while (buf.hasRemaining()) {
                 int c = clientChannel.read(buf);
                 if (c == -1) {
                     clientChannel.close();
+                    key.cancel();
                     arrByteMapForClients.remove(clientChannel);
-                    //Logger.info("Клиент отключился");
                     throw new EOFException("Канал закрыт");
-                }
+                } else if (c == 0) {
+                    Logger.debug("Читаем данные");
+                    Thread.sleep(100); 
+                    continue;
+                }   
             }
             
             buf.flip();
             byte[] bytes = new byte[buf.remaining()];
             buf.get(bytes);
-            //buf.clear();
-            //arrByte.write(bytes);
-            Request req = Serialize.tryDeserialize(bytes);
-            //Logger.debug("запрос: {} ---- {}", req, req.getCommand().getName());
             
-            if (req == null) {
-                Logger.debug("Получен null-запрос");
-                answerServer(clientChannel, "получен нулевой запрос или произошла ошибка при его получении");
-                return;
-            }
+            Request req = Serialize.tryDeserialize(bytes);
 
-            Logger.debug("Получен объект: {}", req);
-            if (req.getCommand().getName().equals("exit")) {
-                Logger.info("Клиент запросил разрыв соединения (команда 'exit')");
-                work = false;
-                return;
-                //clientChannel.close();
-                //throw new EOFException("Канал закрыт по команде клиента");
-            }
-            if (req.getCommand().getName().equals("stop")) {
-                Logger.info("Клиент запросил завершение сервера (команда 'stop')");
-                work = false;
-                return;
-            }
-            if (req.getCommand().getName().equals("authentication")) {
-                Logger.info("Получен запрос на вход от пользователя: login='{}', password='{}'", req.getLogin(), req.getPassword());
-                boolean isSuccess = DatabaseManager.authenticateUser(req.getLogin(), req.getPassword());
-                if (isSuccess) {
-                    answerServer(clientChannel, "auth correct");
-                } else {
-                    answerServer(clientChannel, "auth fail");
-                }
-                return;
-            }
-            if (req.getCommand().getName().equals("registrationNewUser")) {
-                Logger.info("Получен запрос на регистрацию нового пользователя: login='{}', password='{}'", req.getLogin(), req.getPassword());
-                boolean isSuccess = DatabaseManager.registerUser(req.getLogin(), req.getPassword());
-                if (isSuccess) {
-                    answerServer(clientChannel, "reg correct");
-                } else {
-                    answerServer(clientChannel, "reg fail");
-                }
-                return;
-            }
-            // 
+            Logger.info("Команда прочитана");
 
-            buf.clear();
-
-            ComParser comParser = new ComParser(collectionManager);
-            String res;
-            if(req.getArgs() != null) {
-                res = comParser.interpret(req.getLogin(), req.getCommand(), req.getArgs());
-            } else if(req.getLabWork() != null) {
-                res = comParser.interpret(req.getLogin(), req.getCommand(), req.getLabWork());
-            } else {
-                res = comParser.interpret(req.getLogin(), req.getCommand(), null);
-            }
-            answerServer(clientChannel, res);
-            Logger.debug("Ответ отправлен клиенту: {}", res);
-
-        } catch (EOFException e) {
-            throw e;
+            HandlerClients handlerClients = new HandlerClients(selector, key, clientChannel, collectionManager, req);
+            cachedHandlePool.submit(() -> {handlerClients.handle();});
+            
         } catch (Exception e) {
-            Logger.error(e, "Ошибка при попытке получить или обработать запрос от клиента");
+            Logger.error(e, "Ошибка при попытке получить запрос от клиента");
         }
     }
-    public void answerServer(SocketChannel clientChannel, String res) {
-        try {
-            byte[] serializedObject = Serialize.serializeObject(res);
-            ByteBuffer buffer = ByteBuffer.allocate(4 + serializedObject.length);
-            buffer.putInt(serializedObject.length);
-            buffer.put(serializedObject);
-            buffer.flip();
-            while (buffer.hasRemaining()) {
-                clientChannel.write(buffer);
-            }
-        } catch (Exception e) {
-            Logger.error(e, "Ошибка при отправке ответа клиенту");
-        }
-    }
+    
 }
 
 

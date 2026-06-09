@@ -18,7 +18,7 @@ public class CollectionManager {
     public void loadCollection(TreeSet<LabWork> collection) {
         this.collection = collection;
     }
-    public String addLab(String login, LabWork labWork) {
+    public synchronized String addLab(String login, LabWork labWork) {
         long id = DatabaseManager.addLabworkToDB(login, labWork);
         if (id != -1) {
             labWork.setId(id);
@@ -27,7 +27,7 @@ public class CollectionManager {
         }
         return null;
     }
-    public String addLabs(String login, ArrayList<LabWork> labWorks) {
+    public synchronized String addLabs(String login, ArrayList<LabWork> labWorks) {
         String s = "";
         for(var laba : labWorks) {
             long id = DatabaseManager.addLabworkToDB(login, laba);
@@ -40,7 +40,7 @@ public class CollectionManager {
         return s;
     }
 
-    public String delLab(String login, long id) {
+    public synchronized String delLab(String login, long id) {
         try {
             LabWork delLaba = findElem(id);
             if(delLaba == null) {
@@ -58,7 +58,7 @@ public class CollectionManager {
         }
         
     }
-    public String clearCollection() {
+    public synchronized String clearCollection() {
         long countElems = DatabaseManager.clearDatabase();
         if (countElems != -1) {
             collection.clear();
@@ -68,7 +68,7 @@ public class CollectionManager {
         }
     }
 
-    public String updateLab(String login, long id, LabWork updLaba) {
+    public synchronized String updateLab(String login, long id, LabWork updLaba) {
         try {
             LabWork delLaba = findElem(id);
             if(delLaba == null) {
