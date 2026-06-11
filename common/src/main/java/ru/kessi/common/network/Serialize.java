@@ -5,6 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import org.tinylog.Logger;
+
 public class Serialize {
     public static Object tryDeserialize(byte[] bytes) throws Exception {
         try {
@@ -12,7 +14,7 @@ public class Serialize {
             return (String) obj.readObject();
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("Ошибка при десериализации");
+            Logger.info("Ошибка при десериализации");
             throw e;
         }
     }
@@ -26,7 +28,7 @@ public class Serialize {
             return byteObj.toByteArray();
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("Ошибка при сериализации");
+            Logger.info("Ошибка при сериализации");
             throw e;
         }
     }

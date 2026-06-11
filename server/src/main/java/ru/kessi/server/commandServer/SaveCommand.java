@@ -6,13 +6,15 @@ import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.TreeSet;
 
+import org.tinylog.Logger;
+
 import ru.kessi.common.entites.LabWork;
 import ru.kessi.common.exceptions.WrongParam;
 import ru.kessi.server.managers.CollectionManager;
 
 public class SaveCommand extends ru.kessi.common.commandManager.command.SaveCommand implements ServerCommand {
     @Override
-    public String execute(CollectionManager collectionManager, Object args){
+    public String execute(String login, CollectionManager collectionManager, Object args){
         try {
             String str = "dop_doc/collection.csv";
             
@@ -50,7 +52,7 @@ public class SaveCommand extends ru.kessi.common.commandManager.command.SaveComm
             }
             return ("Коллекция сохранена в файл");
         } catch (Exception e) {
-            System.out.println("Произошла непредвиденная ошибка. Создание элемента было остановлено и он не был добавлен в коллекцию");
+            Logger.info("Произошла непредвиденная ошибка. Создание элемента было остановлено и он не был добавлен в коллекцию");
             throw e;
         }
     

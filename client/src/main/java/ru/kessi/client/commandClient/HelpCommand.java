@@ -1,5 +1,7 @@
 package ru.kessi.client.commandClient;
 
+import org.tinylog.Logger;
+
 import ru.kessi.client.manegers.ComHistory;
 import ru.kessi.client.manegers.ComParser;
 import ru.kessi.common.commandManager.CommandMetadata;
@@ -13,7 +15,7 @@ public class HelpCommand extends ru.kessi.common.commandManager.command.HelpComm
                 throw new WrongParam("Введены лишние параметры");
             }
             ComParser pars = new ComParser();
-            System.out.println("Список доступных команд: ");
+            Logger.info("Список доступных команд: ");
             for(ClientCommand com : pars.getCommands().values()) {
                 if (com instanceof CommandMetadata) {
                     CommandMetadata metadata = (CommandMetadata) com;
@@ -23,7 +25,7 @@ public class HelpCommand extends ru.kessi.common.commandManager.command.HelpComm
             ComHistory.addCom(name, null);
             return null;
         }  catch (WrongParam e) {
-            System.out.println("Ошибка ввода.");
+            Logger.info("Ошибка ввода.");
             throw e;
         }
     }

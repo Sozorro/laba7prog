@@ -8,7 +8,7 @@ public class ClearCommand extends ru.kessi.common.commandManager.command.ClearCo
         ComHistory.addCom(name, null);
         return null;
         /*long i = collectionManager.delLabs();
-        System.out.println("Коллекция очищена, удалено " + i + " элемент" + (i == 1 ? "" : ((i < 5 || (i >= 20 && i % 10 == 0)) ? "ов" : "а")));
+        Logger.info("Коллекция очищена, удалено " + i + " элемент" + (i == 1 ? "" : ((i < 5 || (i >= 20 && i % 10 == 0)) ? "ов" : "а")));
     */
     }
 }

@@ -3,7 +3,7 @@ package ru.kessi.server.commandServer;
 import ru.kessi.server.managers.CollectionManager;
 
 public interface ServerCommand {
-    public String execute(CollectionManager collectionManager, Object args);
+    public String execute(String login, CollectionManager collectionManager, Object args);
 }
 /*
 Нужные команды:

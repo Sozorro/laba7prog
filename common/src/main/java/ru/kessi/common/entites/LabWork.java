@@ -30,6 +30,21 @@ public class LabWork implements Serializable {
         this.difficulty = difficulty;
         this.author = author;
     }
+    public LabWork (Long id, java.util.Date date, String name, Coordinates coordinates, int minimalPoint, int personalQualitiesMinimum,
+        String description, Difficulty difficulty, Person author) {
+
+        this.id = id;
+        
+        this.creationDate = date;
+
+        this.name = name;
+        this.coordinates = coordinates;
+        this.minimalPoint = minimalPoint;
+        this.personalQualitiesMinimum = personalQualitiesMinimum;
+        this.description = description;
+        this.difficulty = difficulty;
+        this.author = author;
+    }
     
     public void setId(Long idCounter) {
         this.id = idCounter;

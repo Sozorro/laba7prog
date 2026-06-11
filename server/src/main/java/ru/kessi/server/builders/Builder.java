@@ -2,6 +2,8 @@ package ru.kessi.server.builders;
 
 import java.util.function.Function;
 
+import org.tinylog.Logger;
+
 import ru.kessi.common.exceptions.WrongAction;
 import ru.kessi.common.exceptions.WrongParam;
 
@@ -12,8 +14,8 @@ public class Builder {
             try {
                 return action.apply(params);
             } catch (WrongParam e) {
-                System.out.println(e.getMessage());
-                System.out.println("\tВведены не все параметры или они некорректно заданы \n" );
+                Logger.error(e);
+                Logger.info("\tВведены не все параметры или они некорректно заданы \n" );
             }
         }
 

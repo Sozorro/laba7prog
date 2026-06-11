@@ -2,89 +2,113 @@ package ru.kessi.server.managers;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.tinylog.Logger;
+
 import ru.kessi.common.entites.LabWork;
 import ru.kessi.common.entites.Person;
+import ru.kessi.common.exceptions.NotEnoughRights;
 import ru.kessi.common.exceptions.WrongParam;
+import ru.kessi.server.database.DatabaseManager;
 
 public class CollectionManager {
-    private TreeSet<LabWork> labwork = new TreeSet<>(new idComparator());
+    private TreeSet<LabWork> collection = new TreeSet<>(new idComparator());
     private java.util.Date creationDate = new java.util.Date();
-    private long idCounter = 1;
     
-    public String addLab(LabWork labWork) {
-        labWork.setId(Long.valueOf(idCounter));
-        idCounter++;
-        this.labwork.add(labWork);
-        return "Объект добавлен";
+    public void loadCollection(TreeSet<LabWork> collection) {
+        this.collection = collection;
     }
-    public void addLabs(ArrayList<LabWork> labWorks) {
+    public synchronized String addLab(String login, LabWork labWork) {
+        long id = DatabaseManager.addLabworkToDB(login, labWork);
+        if (id != -1) {
+            labWork.setId(id);
+            this.collection.add(labWork);
+            return "Объект добавлен в коллекцию и сохранен в БД";
+        }
+        return null;
+    }
+    public synchronized String addLabs(String login, ArrayList<LabWork> labWorks) {
+        String s = "";
         for(var laba : labWorks) {
-            laba.setId(Long.valueOf(idCounter));
-            idCounter++;
-            this.labwork.add(laba);
+            long id = DatabaseManager.addLabworkToDB(login, laba);
+            if (id != -1) {
+                laba.setId(id);
+                this.collection.add(laba);
+                s += ("Объект " + laba.toString() + " добавлен в коллекцию и сохранен в БД \n");
+            }
+        }
+        return s;
+    }
+
+    public synchronized String delLab(String login, long id) {
+        try {
+            LabWork delLaba = findElem(id);
+            if(delLaba == null) {
+                throw new WrongParam("Несуществующий элемент");
+            }
+            boolean delete = DatabaseManager.delLabworkForDB(login, delLaba.getId());
+            if (delete == true) {
+                collection.remove(delLaba);
+                return "Объект с id " + id + " удалён из коллекции и базы данных";
+            } else {
+                return "Возникла ошибка при попытке удаления объекта";
+            }
+        } catch (NotEnoughRights e) {
+            return e.getMessage();
+        }
+        
+    }
+    public synchronized String clearCollection() {
+        long countElems = DatabaseManager.clearDatabase();
+        if (countElems != -1) {
+            collection.clear();
+            return "Коллекция очищена из базы данных удалено " + countElems + " объектов";
+        } else {
+            return "Возникла ошибка при попытке удаления объектов";
         }
     }
 
-    public String delLab(long id) {
-        LabWork delLaba = findElem(id);
-        if(delLaba == null) {
-            throw new WrongParam("Несуществующий элемент");
+    public synchronized String updateLab(String login, LabWork updLaba) {
+        try {
+            LabWork delLaba = findElem(updLaba.getId());
+            Logger.debug("delLaba = null? {}", (delLaba == null));
+            if(delLaba == null) {
+                throw new WrongParam("Несуществующий элемент");
+            }
+            boolean updateElem = DatabaseManager.updateLabworkToDB(login, updLaba);
+            if (updateElem != false) {
+                collection.remove(delLaba);
+                this.collection.add(updLaba);
+                return ("Объект с id " + updLaba.getId() + " обновлён");
+            } else {
+                return "Возникла ошибка при попытке изменения объекта";
+            }
+        } catch (NotEnoughRights e) {
+            return e.getMessage();
         }
-        Iterator<LabWork> iterator = labwork.tailSet(delLaba, false).iterator();
-        labwork.remove(delLaba);
-        while (iterator.hasNext()) {
-            LabWork laba = iterator.next();
-            labwork.remove(laba);
-            laba.setId(laba.getId() - 1);
-            labwork.add(laba);
-        }
-        idCounter--;
-        return ("Объект с id " + id + " удалён");
-    }
-    public long delLabs() {
-        long i = idCounter - 1;
-        labwork.clear();
-        idCounter = 1;
-        return i;
     }
 
-    public String updateLab(long id, LabWork updLaba) {
-        LabWork delLaba = findElem(id);
-        if(delLaba == null) {
-            throw new WrongParam("Несуществующий элемент");
-        }
-        labwork.remove(delLaba);
-        updLaba.setId(id);
-        this.labwork.add(updLaba);
-        return ("Объект с id " + id + " обновлён");
-    }
-
-    //Изменен с использованием Stream API
     public LabWork findElem(long id) {
-        return labwork.stream()
+        return collection.stream()
             .filter(laba -> laba.getId() == id)
             .findFirst()
             .orElse(null);
     }
-    //Изменен с использованием Stream API
     public ArrayList<LabWork> findElemsHeavierPerson(Person author) {
-        return labwork.stream()
+        return collection.stream()
             .filter(laba -> laba.getAuthor().getWeight() > author.getWeight())
             .collect(Collectors.toCollection(ArrayList::new));
     }
-    //Изменен с использованием Stream API
     public ArrayList<LabWork> findElemsSubstring(String prefDescription) {
-        return labwork.stream()
+        return collection.stream()
             .filter(laba -> laba.getDescription().startsWith(prefDescription))
             .collect(Collectors.toCollection(ArrayList::new));
     }
 
     public TreeSet<LabWork> getElems() {
-        return labwork;
+        return collection;
     }
 
     class idComparator implements Comparator<LabWork> {
@@ -94,19 +118,13 @@ public class CollectionManager {
         }
     }
 
-    public long getIdCounter() {
-        return idCounter;
+    public long getClollectionSize() {
+        return collection.size();
     }
 
     public String toString() {
-        return "Объект Collection:\nType: " + labwork.getClass() + "\n" +
+        return "Объект Collection:\nType: " + collection.getClass() + "\n" +
             "creationDate: " + creationDate + "\n" +
-            "Size: " + labwork.size();
+            "Size: " + collection.size();
     }
-    /*
-    Должно быть:
-    сортировка по умолчанию
-    Коллекция типа java.util.TreeSet
-    При запуске приложения коллекция должна автоматически заполняться значениями из файла.
-    */
 }

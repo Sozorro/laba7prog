@@ -21,6 +21,10 @@ public class Client {
     private String host;
     private int port;
 
+    private boolean checkAuth = true;
+    private String login;
+    private String password;
+
     public Client() {
     }
 
@@ -39,10 +43,10 @@ public class Client {
         try {
             if (socketChannel != null && socketChannel.isOpen()) {
                 socketChannel.close();
-                Logger.info("Клиент удалён");
+                Logger.debug("Клиент удалён");
             }
         } catch (Exception e) {
-            Logger.error("Ошибка при попытке удалить клиента", e);
+            Logger.error(e, "Ошибка при попытке удалить клиента");
         }
     }
 
@@ -57,12 +61,16 @@ public class Client {
                 Logger.info("Сервер {} подключен", socketChannel.getRemoteAddress());
                 while (true) {
                     try {
-                        request(scanner); // Один вызов — внутри цикл обработки команд
+                        Input.initInput(scanner);
+                        if(login == null && password == null) {
+                            checkAuth = authenticateUser(scanner);
+                        }
+                        if(checkAuth == true)  request(scanner);
                         break; // Выход, если request() завершился нормально (например, exit)
                     } catch (IOException e) {
-                        Logger.warn("Соединение потеряно, переподключение...", e);
+                        Logger.warn(e, "Соединение потеряно, переподключение...");
                         if (!connectRetry()) {
-                            Logger.error("Не удалось переподключиться. Завершение работы.");
+                            Logger.error(e, "Не удалось переподключиться. Завершение работы.");
                             break;
                         }
                     }
@@ -91,6 +99,7 @@ public class Client {
 
             try {
                 if (socketChannel.connect(new InetSocketAddress(host, port))) {
+                    Logger.info("Подключение установлено", attempt);
                     Logger.debug("Подключение установлено с попытки {}", attempt);
                     return true;
                 }
@@ -108,7 +117,7 @@ public class Client {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                Logger.error("Поток прерван");
+                Logger.error(e, "Поток прерван");
                 break;
             }
         }
@@ -119,9 +128,10 @@ public class Client {
 
 
     public void request(Scanner scanner) throws IOException {
+
         try {
             while (true) {
-                Request req = Input.start(scanner);
+                Request req = Input.getRequest();
                 if (req == null || req.getCommand() == null) {
                     continue;
                 }
@@ -131,6 +141,9 @@ public class Client {
                 if (req.getCommand().getName().equals("help")) {
                     continue;
                 }
+
+                req.setLogin(login);
+                req.setPassword(password);
 
                 Logger.debug("Передаём данные: {}", req.getCommand().toString());
                 if(req.getLabWork() != null) Logger.trace("LabWork: {}", req.getLabWork());
@@ -149,17 +162,20 @@ public class Client {
                     req.getCommand().getName().equals("stop")) {
                    break;
                 }
-                answerServer();
+                String ans = answerServer();
+                Logger.info(ans);
+
             }
 
         } catch (IOException e) {
-            Logger.error("Ошибка ввода-вывода при попытке передать запрос");
+            Logger.error(e, "Ошибка ввода-вывода при попытке передать запрос");
             throw e;
         } catch (Exception e) {
-            Logger.error("Ошибка при попытке передать запрос");
+            Logger.error(e, "Ошибка при попытке передать запрос");
         }
     }
-    public void answerServer() {
+
+    public String answerServer() {
         try {
             ByteBuffer lengthBuffer = ByteBuffer.allocate(4);
             while (lengthBuffer.hasRemaining()) {
@@ -174,7 +190,7 @@ public class Client {
 
             if(size <= 0 || size > MAX_MESSAGE_SIZE) {
                 Logger.warn("Неверный размер: {}", size);
-                return;
+                return null;
             }
 
             ByteBuffer buf = ByteBuffer.allocate(size);
@@ -191,14 +207,84 @@ public class Client {
             buf.get(bytes);
             String req = Serialize.tryDeserialize(bytes);
             if (req == null) {
-                return;
+                return null;
             }
-            Logger.info("Получен объект: {}", req);
+            Logger.trace("Получен объект: {}", req);
+            return req;
         } catch (Exception e) {
-            Logger.error("Ошибка при чтении ответа сервера");
+            Logger.error(e, "Ошибка при чтении ответа сервера, попробуйте ещё раз");
+            return null;
         }
         
 
+    }
+
+    private boolean authenticateUser(Scanner scanner) throws IOException {
+        Input.showText("Чтобы взаимодействовать с коллекцией авторизируйтесь:");
+        Request authUser = null;
+        try {
+            while (true) {
+                Logger.info("(Чтобы выйти из управления коллекцией введите exit(e), чтобы зарегистрировать нового пользователя введите new(n))");
+
+                authUser = new Request(new ru.kessi.common.commandManager.AuthCommand());
+                String reqLogin;
+                String reqPass;
+                reqLogin = Input.getParams("Введите логин: ");
+                if("exit".equals(reqLogin) || "e".equals(reqLogin)) {
+                    return false;
+                }
+                if("new".equals(reqLogin) || "n".equals(reqLogin)) {
+                    authUser = new Request(new ru.kessi.common.commandManager.RegNewUserCommand());
+                    reqLogin = Input.getParams("Введите желаемый логин: ");
+                    reqPass = Input.getParams("Введите желаемый пароль: ");
+                } else {
+                    reqPass = Input.getParams("Введите пароль: ");
+                    if("exit".equals(reqPass) || "e".equals(reqPass)) {
+                        return false;
+                    }
+                    if("new".equals(reqPass) || "n".equals(reqPass)) {
+                        authUser = new Request(new ru.kessi.common.commandManager.RegNewUserCommand());
+                        reqLogin = Input.getParams("Введите желаемый логин: ");
+                        reqPass = Input.getParams("Введите желаемый пароль: ");
+                    }
+                }
+
+                authUser.setLogin(reqLogin);
+                authUser.setPassword(reqPass);
+
+
+                Logger.debug("Отправляем запрос на авторизацию...");
+
+                byte[] serializedObject = Serialize.serializeObject(authUser);
+                ByteBuffer buffer = ByteBuffer.allocate(4 + serializedObject.length);
+                buffer.putInt(serializedObject.length);
+                buffer.put(serializedObject);
+                buffer.flip();
+                while (buffer.hasRemaining()) {
+                    socketChannel.write(buffer);
+                }
+
+                String ans = answerServer();
+
+                if ("auth correct".equals(ans)) {
+                    Logger.info("Авторизация успешна! Добро пожаловать, {}", reqLogin);
+                    this.login = reqLogin;
+                    this.password = reqPass;
+                    return true;
+                } else if ("reg correct".equals(ans)) {
+                    Logger.info("Регистрация пользователя {} прошла успешна! Теперь для доступа к коллекции войдите в созданный аккаунт", reqLogin);
+                } else if ("auth fail".equals(ans) || "reg fail".equals(ans)) {
+                    Logger.info("Ошибка: Неверный логин или пароль. Попробуйте снова");
+                }
+            
+            }
+        } catch (IOException e) {
+            Logger.error(e, "Ошибка при попытке авторизации пользователя, попробуйте ещё раз");
+            throw e;
+        } catch (Exception e) {
+            Logger.error(e, "Критическая ошибка при попытке авторизации пользователя");
+            return false;
+        }
     }
 }
 /*ByteBuffer lengthBuffer = ByteBuffer.allocate(4);
@@ -207,21 +293,21 @@ while (lengthBuffer.hasRemaining()) {
     if (c == -1) {
         clientChannel.close();
         arrByteMapForClients.remove(clientChannel);
-        System.out.println("Клиент отключился");
+        Logger.info("Клиент отключился");
         return;
     } else if (c == 0) {
         // Нет данных, ждём следующего события
-        System.out.println("Нет данных, ждём следующего события");
+        Logger.info("Нет данных, ждём следующего события");
         return;
     }   
 }
 lengthBuffer.flip();
 int size = lengthBuffer.getInt();
-System.out.println("][" + size);
+Logger.info("][" + size);
 //lengthBuffer.clear();
 
 if(size <= 0) {
-    System.out.println("Неверный размер");
+    Logger.info("Неверный размер");
     return;
 }
 
@@ -233,7 +319,7 @@ while (buf.hasRemaining()) {
     if (c == -1) {
         clientChannel.close();
         arrByteMapForClients.remove(clientChannel);
-        System.out.println("Клиент отключился");
+        Logger.info("Клиент отключился");
         return;
     }
 }
@@ -246,7 +332,7 @@ buf.get(bytes);
 Object obj = Serialize.tryDeserialize(bytes);
 
 if (obj != null) {
-    System.out.println("Получен объект: " + obj);
+    Logger.info("Получен объект: " + obj);
 }
  */
 

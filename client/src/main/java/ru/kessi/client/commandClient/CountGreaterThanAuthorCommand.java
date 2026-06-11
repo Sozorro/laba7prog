@@ -1,5 +1,7 @@
 package ru.kessi.client.commandClient;
 
+import org.tinylog.Logger;
+
 import ru.kessi.client.io.Input;
 import ru.kessi.client.io.InputFile;
 import ru.kessi.client.manegers.ComHistory;
@@ -14,7 +16,7 @@ public class CountGreaterThanAuthorCommand extends ru.kessi.common.commandManage
             if(args == null || args.length == 0) {
                 if(InputFile.readFile == false) str = Input.getParams("введите вес").split(" ");
                 else {
-                    System.out.println("Не введены параметры, необходимые для выполнения команды, хотите ввести их в интерактивном режиме?");
+                    Logger.info("Не введены параметры, необходимые для выполнения команды, хотите ввести их в интерактивном режиме?");
                     String prov = Input.getParams("\tВведите: \"(y)yes\" \n \tИли: \"no\" и тогда команда будет пропущена");
                     while(prov == null) {
                         prov = Input.getParams("\tВведите: \"(y)yes\" \n \tИли: \"no\" и тогда команда будет пропущена");
@@ -22,7 +24,7 @@ public class CountGreaterThanAuthorCommand extends ru.kessi.common.commandManage
                     if(prov.equals("yes") || prov.equals("y")) {
                         str = Input.getParams("введите вес").split(" ");
                     }
-                    System.out.println("Комнда была пропущена");
+                    Logger.info("Команда была пропущена");
                     throw new WrongAction();
                 }
             }
@@ -36,10 +38,10 @@ public class CountGreaterThanAuthorCommand extends ru.kessi.common.commandManage
             ComHistory.addCom(name, str[0]);
             return str[0];
         } catch (NumberFormatException e) {
-            System.out.println("Неверный формат веса");
+            Logger.info("Неверный формат веса");
             throw e;
         } catch (WrongParam e) {
-            System.out.println(e.getMessage());
+            Logger.error(e);
             String prov = Input.getParams("\tЕсли хотите попробовать ещё раз введите: \"(y)yes\" \n \tИначе введите: \"(n)no\" \n \t");
             if(prov != null && (prov.equals("yes") || prov.equals("y"))) {
                 return execute();

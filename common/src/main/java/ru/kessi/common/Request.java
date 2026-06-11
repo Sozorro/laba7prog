@@ -9,7 +9,10 @@ public class Request implements Serializable {
     private LabWork labWork;
     private AbstractCommand command;
     private String args;
-    //public Object args;
+
+    private String login;
+    private String password;
+    
     public Request(AbstractCommand command) {
         this.command = command;
     }
@@ -34,5 +37,21 @@ public class Request implements Serializable {
     }
     public String getArgs() {
         return args;
+    }
+
+    public String getLogin() {
+        return login;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

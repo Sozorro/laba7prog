@@ -10,7 +10,7 @@ import ru.kessi.server.managers.CollectionManager;
 
 public class ShowCommand extends ru.kessi.common.commandManager.command.ShowCommand implements ServerCommand {
     @Override
-    public String execute(CollectionManager collectionManager, Object args) {
+    public String execute(String login, CollectionManager collectionManager, Object args) {
         TreeSet<LabWork> labWorks = collectionManager.getElems();
         String s = "";
         for(LabWork laba : labWorks) {

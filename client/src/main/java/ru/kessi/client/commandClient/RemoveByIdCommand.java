@@ -1,5 +1,7 @@
 package ru.kessi.client.commandClient;
 
+import org.tinylog.Logger;
+
 import ru.kessi.client.io.Input;
 import ru.kessi.client.io.InputFile;
 import ru.kessi.client.manegers.ComHistory;
@@ -19,10 +21,10 @@ public class RemoveByIdCommand extends ru.kessi.common.commandManager.command.Re
             ComHistory.addCom(name, str[0]);
             return str[0];
         } catch (NumberFormatException e) {
-            System.out.println("Неверный формат id");
+            Logger.info("Неверный формат id");
             throw new WrongParam("Неверный формат id");
         } catch (WrongParam e) {
-            System.out.println(e.getMessage());
+            Logger.error(e);
             String prov = null;
             while (prov == null) {
                 prov = Input.getParams("\tЕсли хотите попробовать ещё раз введите: \"(y)yes\" \n \tИначе введите: \"(n)no\" \n \t");
@@ -30,11 +32,11 @@ public class RemoveByIdCommand extends ru.kessi.common.commandManager.command.Re
             if(prov.equals("yes") || prov.equals("y")) {
                 return execute(Input.getParams("Какой элемент удалить?").split(" "));
             } else {
-                System.out.println("Комнда была пропущена");
+                Logger.info("Комнда была пропущена");
             }
             throw e;
         } catch (WrongAction e) {
-            System.out.println("Комнда была остановлена");
+            Logger.info("Комнда была остановлена");
             throw e;
         }
     }

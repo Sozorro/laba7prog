@@ -6,10 +6,10 @@ import ru.kessi.server.managers.CollectionManager;
 
 public class RemoveByIdCommand extends ru.kessi.common.commandManager.command.RemoveByIdCommand implements ServerCommand {
     @Override
-    public String execute(CollectionManager collectionManager, Object args) {
+    public String execute(String login, CollectionManager collectionManager, Object args) {
         try {
             if(args != null && args instanceof String) {
-                return collectionManager.delLab(Long.parseLong((String) args));
+                return collectionManager.delLab(login, Long.parseLong((String) args));
             } else throw new WrongParam();
         } catch (NumberFormatException e) {
             return ("Неверный формат id");
